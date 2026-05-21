@@ -1105,38 +1105,43 @@ function renderUserBanner(){
 
 function showAuthScreen(){ document.getElementById('authScreen').classList.remove('hidden'); }
 
+// ── 클라우드에서 이 선생님의 데이터(DB 전체)를 불러옴 ──
+// user_data 테이블에 선생님(user)별로 DB 객체 전체를 JSON으로 저장.
+// 처음 로그인(데이터 없음)이면 현재 localStorage/INIT 기본값을 그대로 사용.
 async function loadAllFromCloud(){
-  const {data:students} = await sb.from('students').select('*').order('created_at');
-  const {data:lessons} = await sb.from('lessons').select('*');
-  const {data:scores} = await sb.from('scores').select('*');
-  const {data:exams} = await sb.from('exams').select('*').order('date');
-  const {data:consults} = await sb.from('consults').select('*').order('date',{ascending:false});
-  const {data:settings} = await sb.from('academy_settings').select('config').eq('academy_id', currentUser.academy_id).single();
+  try{
+    const {data, error} = await sb.from('user_data')
+      .select('data').eq('user_id', currentUser.id).maybeSingle();
+    if(error){ console.warn('cloud load', error.message); }
+    if(data && data.data && typeof data.data === 'object' && Object.keys(data.data).length){
+      // 클라우드에 저장된 데이터가 있으면 그것으로 교체
+      if(typeof DB !== 'undefined'){
+        // 기존 DB 구조 유지하면서 클라우드 값으로 덮어쓰기
+        for(const k of Object.keys(DB)){ delete DB[k]; }
+        Object.assign(DB, data.data);
+      }
+      if(typeof toast === 'function') toast('☁️ 클라우드 데이터 불러옴');
+    }else{
+      // 클라우드에 아직 없음 → 현재(로컬/기본) 데이터를 클라우드에 첫 저장
+      await sb.from('user_data').upsert(
+        {user_id: currentUser.id, data: (typeof DB!=='undefined'?DB:{}), updated_at: new Date().toISOString()},
+        {onConflict:'user_id'}
+      );
+      if(typeof toast === 'function') toast('☁️ 클라우드 연결 완료');
+    }
+  }catch(e){ console.warn('loadAllFromCloud', e); }
+}
 
-  DB.students = (students||[]).map(s=>({
-    id: s.id, name: s.name, grade: s.grade, school: s.school,
-    stype: s.stype, track: s.track, phone: s.phone,
-    parent_phone: s.parent_phone, memo: s.memo, teacher_id: s.teacher_id
-  }));
-  DB.lessons = {};
-  (lessons||[]).forEach(l=>{
-    const st = DB.students.find(s=>s.id===l.student_id);
-    if(st) DB.lessons[st.name] = {
-      period: l.period, attend: l.attend,
-      summary: l.summary, goal: l.goal, rows: l.rows||[]
-    };
-  });
-  DB.scMid = {}; DB.scHigh = {};
-  (scores||[]).forEach(sc=>{
-    const st = DB.students.find(s=>s.id===sc.student_id);
-    if(!st) return;
-    const target = sc.score_type==='mid' ? DB.scMid : DB.scHigh;
-    target[st.name] = {rows: sc.rows||[]};
-  });
-  DB.exams = (exams||[]).map(e=>({...e, id:e.id}));
-  DB.consults = (consults||[]).map(c=>({...c, id:c.id}));
-  DB.cfg = settings?.config || {};
-  if(typeof toast === 'function') toast('☁️ 클라우드 데이터 로드 완료');
+// ── 현재 DB 전체를 클라우드에 저장 ──
+async function syncDBToCloud(){
+  try{
+    if(typeof sb==='undefined' || typeof currentUser==='undefined' || !currentUser) return;
+    const {error} = await sb.from('user_data').upsert(
+      {user_id: currentUser.id, data: (typeof DB!=='undefined'?DB:{}), updated_at: new Date().toISOString()},
+      {onConflict:'user_id'}
+    );
+    if(error) console.warn('cloud sync', error.message);
+  }catch(e){ console.warn('syncDBToCloud', e); }
 }
 
 async function cloudSaveStudent(student){
@@ -1389,11 +1394,25 @@ let DB = (() => {
 })();
 
 function save() {
+  // 1) 로컬 백업 (오프라인 대비)
   try {
     const key = window._userKey || SK;
     localStorage.setItem(key, JSON.stringify(DB));
+  } catch(e) {}
+  // 2) 클라우드 저장 (로그인 상태면)
+  if (typeof sb !== 'undefined' && typeof currentUser !== 'undefined' && currentUser) {
+    try {
+      sb.from('user_data').upsert(
+        {user_id: currentUser.id, data: DB, updated_at: new Date().toISOString()},
+        {onConflict:'user_id'}
+      ).then(r=>{
+        if(r && r.error){ console.warn('cloud sync', r.error.message); toast('⚠️ 클라우드 저장 실패 (로컬엔 저장됨)'); }
+        else { toast('☁️ 저장됨 (클라우드)'); }
+      });
+    } catch(e) { toast('✅ 저장됨 (로컬)'); }
+  } else {
     toast('✅ 저장됨');
-  } catch(e) { toast('⚠️ 저장 실패'); }
+  }
 }
 
 function exportData() {
