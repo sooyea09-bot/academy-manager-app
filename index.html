@@ -938,8 +938,8 @@ tr:hover .ta{opacity:1}
 
 </div><!-- shell -->
 
-<!-- ══ 로그인 / 학원 등록 ══ -->
-<div class="auth-wrap" id="authBg">
+<!-- ══ (사용 안 함) 옛날 데모 로그인 화면 — Supabase 로그인으로 대체됨, 기본 숨김 ══ -->
+<div class="auth-wrap" id="authBg" style="display:none">
   <div class="auth-top">
     <div class="auth-top-logo">
       <div class="auth-top-logo-icon">관</div>
@@ -2769,37 +2769,18 @@ function applyUserToApp(user){
 }
 
 function doLogout(){
-  clearCurUser();
-  window._userKey = null;
-  DB = JSON.parse(JSON.stringify(INIT));
-  // 로그인 화면 표시
-  const bg = document.getElementById('authBg');
-  if(bg) bg.style.display='flex';
-  // 입력값 초기화 (데모 값 유지)
-  const em=document.getElementById('aiEmail'); if(em) em.value='demo@mgsaeng.com';
-  const pw=document.getElementById('aiPw');    if(pw) pw.value='1234';
-  // 탭 로그인으로
-  if(typeof switchAuthTab==='function') switchAuthTab('login');
-  toast('👋 로그아웃 되었습니다');
+  // Supabase 클라우드 로그아웃 후 새로고침 → Supabase 로그인 화면 표시
+  if(typeof sb!=='undefined' && sb.auth){
+    sb.auth.signOut().finally(()=>location.reload());
+  } else {
+    location.reload();
+  }
 }
 function checkAuth(){
-  // 계정이 아예 없으면 데모 계정 자동 생성
-  const accounts=getAccounts();
-  if(accounts.length===0){
-    const demo={id:'demo_default',email:'demo@mgsaeng.com',pw:'1234',academy:'엑설런스 영어',teacher:'엄지T'};
-    saveAccounts([demo]);
-    const userKey=SK+'_'+demo.id;
-    if(!localStorage.getItem(userKey)){localStorage.setItem(userKey,JSON.stringify(INIT));}
-  }
-  const user=getCurUser();
-  if(user){
-    applyUserToApp(user);
-    const _abg=document.getElementById('authBg');if(_abg)_abg.style.display='none';
-    return true;
-  }
-  // 로그인 화면에 데모 계정 안내 표시
-  document.getElementById('loginMsg').innerHTML='<span style="color:var(--ink3)">데모 계정 → 아이디: <b style="color:var(--blue)">demo@mgsaeng.com</b> / 비번: <b style="color:var(--blue)">1234</b></span>';
-  return false;
+  // 클라우드(Supabase) 인증을 사용하므로 옛날 데모 로그인 화면(authBg)은 쓰지 않음.
+  // 항상 숨기고 통과시킨다. 실제 로그인 여부는 Supabase loadUserProfile 가 판단.
+  const _abg=document.getElementById('authBg');if(_abg)_abg.style.display='none';
+  return true;
 }
 
 window.addEventListener('load',()=>{
@@ -2815,6 +2796,10 @@ window.addEventListener('load',()=>{
   console.log('✅ 관리 선생 v2.0 로드 완료');
 });
 window.addEventListener('resize',()=>{const n=document.getElementById('scSel')?.value;if(n)drawChart(n,curScTab,curScTab==='mid'?'scCvs':'scCvsH');});
+</script>
+</body>
+</html>
+,curScTab==='mid'?'scCvs':'scCvsH');});
 </script>
 </body>
 </html>
