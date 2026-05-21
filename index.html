@@ -1201,7 +1201,12 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   else showAuthScreen();
 });
 sb.auth.onAuthStateChange((event, session)=>{
-  if(event === 'SIGNED_OUT' || !session){ location.reload(); }
+  // ⚠️ 초기 로드/세션없음(INITIAL_SESSION)에 새로고침하면 무한 반복됨 → 절대 reload 금지
+  // 실제 로그아웃이 발생했을 때만 로그인 화면 표시
+  if(event === 'SIGNED_OUT'){
+    currentUser = null;
+    showAuthScreen();
+  }
 });
 </script>
 
