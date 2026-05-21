@@ -1067,19 +1067,17 @@ async function doLogout(){
 async function loadUserProfile(){
   const {data:{user}} = await sb.auth.getUser();
   if(!user) return showAuthScreen();
-  const {data:profile, error} = await sb
-    .from('profiles')
-    .select('*, academies(name, invite_code)')
-    .eq('id', user.id).single();
-  if(error || !profile){
-    showAuthErr('프로필 로드 실패: '+(error?.message||''));
-    return;
-  }
+  // 프로필 정보(학원명·이름·역할)는 가입 시 저장된 메타데이터에서 직접 읽음.
+  // → profiles 테이블/트리거에 의존하지 않으므로 "프로필 로드 실패" 오류가 없음.
+  const meta = user.user_metadata || {};
   currentUser = {
-    id: user.id, email: user.email, name: profile.name, role: profile.role,
-    academy_id: profile.academy_id,
-    academy_name: profile.academies?.name||'',
-    invite_code: profile.academies?.invite_code||''
+    id: user.id,
+    email: user.email,
+    name: meta.name || (user.email ? user.email.split('@')[0] : '선생님'),
+    role: meta.invite_code ? 'teacher' : 'owner',
+    academy_id: user.id,
+    academy_name: meta.academy_name || '내 학원',
+    invite_code: ''
   };
   document.getElementById('authScreen').classList.add('hidden');
   renderUserBanner();
