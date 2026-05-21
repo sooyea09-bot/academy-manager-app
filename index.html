@@ -1086,19 +1086,16 @@ async function loadUserProfile(){
 }
 
 function renderUserBanner(){
-  const sb_brand = document.querySelector('.sb-brand');
-  if(sb_brand && !document.getElementById('userBanner')){
-    const div = document.createElement('div');
-    div.id = 'userBanner'; div.className = 'user-banner';
-    div.innerHTML = `
-      <div style="flex:1">
-        <div style="font-size:11px;opacity:.85">🏫 ${currentUser.academy_name}</div>
-        <div style="font-size:14px;font-weight:800">${currentUser.name}</div>
-      </div>
-      <span class="role-badge">${currentUser.role==='owner'?'원장':'선생님'}</span>
-    `;
-    sb_brand.insertAdjacentElement('afterend', div);
-  }
+  if(!currentUser) return;
+  const acad = currentUser.academy_name || '내 학원';
+  const teacher = currentUser.name || '선생님';
+  const roleTxt = currentUser.role==='owner' ? '원장' : '선생님';
+  // 사이드바 학원 박스 + 유저 로우에 로그인한 계정 정보 반영
+  const an=document.getElementById('sbAcademyName'); if(an) an.textContent = acad;
+  const at=document.getElementById('sbAcademyTeacher'); if(at) at.textContent = teacher + ' ' + roleTxt;
+  const thumb=document.getElementById('sbAcademyThumb'); if(thumb) thumb.textContent = acad.slice(0,1);
+  const un=document.getElementById('sbUserName'); if(un) un.textContent = teacher + '님';
+  const av=document.getElementById('sbUserAvatar'); if(av) av.textContent = teacher.slice(0,1);
 }
 
 function showAuthScreen(){ document.getElementById('authScreen').classList.remove('hidden'); }
@@ -1120,7 +1117,11 @@ async function loadAllFromCloud(){
       }
       if(typeof toast === 'function') toast('☁️ 클라우드 데이터 불러옴');
     }else{
-      // 클라우드에 아직 없음 → 현재(로컬/기본) 데이터를 클라우드에 첫 저장
+      // 클라우드에 아직 없음(신규 선생님) → 이전 사용자 데이터가 섞이지 않도록 기본값으로 초기화 후 첫 저장
+      if(typeof DB !== 'undefined' && typeof INIT !== 'undefined'){
+        for(const k of Object.keys(DB)){ delete DB[k]; }
+        Object.assign(DB, JSON.parse(JSON.stringify(INIT)));
+      }
       await sb.from('user_data').upsert(
         {user_id: currentUser.id, data: (typeof DB!=='undefined'?DB:{}), updated_at: new Date().toISOString()},
         {onConflict:'user_id'}
@@ -2796,10 +2797,6 @@ window.addEventListener('load',()=>{
   console.log('✅ 관리 선생 v2.0 로드 완료');
 });
 window.addEventListener('resize',()=>{const n=document.getElementById('scSel')?.value;if(n)drawChart(n,curScTab,curScTab==='mid'?'scCvs':'scCvsH');});
-</script>
-</body>
-</html>
-,curScTab==='mid'?'scCvs':'scCvsH');});
 </script>
 </body>
 </html>
