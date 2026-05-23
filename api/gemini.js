@@ -20,7 +20,8 @@ export default async function handler(req, res) {
     body = body || {};
     const system = body.system || '';
     const messages = Array.isArray(body.messages) ? body.messages : [];
-    const maxTokens = Number(body.max_tokens) || 1500;
+    // 답변 잘림 방지: 최소 2048 토큰 확보 (클라이언트가 더 크게 보내면 그 값 사용)
+    const maxTokens = Math.max(Number(body.max_tokens) || 1500, 2048);
 
     const contents = messages.map(function (m) {
       var c = typeof m.content === 'string' ? m.content : (m.content && m.content[0] && m.content[0].text) || '';
@@ -28,7 +29,15 @@ export default async function handler(req, res) {
     });
     if (!contents.length) { res.status(400).json({ error: '메시지가 비어 있습니다.' }); return; }
 
-    const gReq = { contents: contents, generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 } };
+    const gReq = {
+      contents: contents,
+      generationConfig: {
+        maxOutputTokens: maxTokens,
+        temperature: 0.7,
+        // Gemini 2.5 Flash 의 '사고(thinking)' 토큰이 출력 토큰을 잠식해 답변이 잘리는 문제 방지 → 사고 비활성화
+        thinkingConfig: { thinkingBudget: 0 }
+      }
+    };
     if (system) gReq.system_instruction = { parts: [{ text: system }] };
 
     const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + MODEL + ':generateContent';
