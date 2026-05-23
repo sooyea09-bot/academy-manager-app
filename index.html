@@ -1985,7 +1985,7 @@ async function runAIAnalysis(){
   const st=DB.students.find(s=>s.name===nm);const tab=st?.stype||'mid';const db=tab==='mid'?DB.scMid:DB.scHigh;const sd=db[nm];
   const context=`학생: ${nm} (${st?.grade||''} / ${st?.school||''})\n수업기간: ${ld.period||''}\n\n수업기록:\n${ld.rows.map(r=>`${r.no}(${r.date||''}) 단어:${r.word??'—'} 백지:${r.baek??'—'} 단원/모의:${r.dan??'—'} 복습:${r.rev??'—'} 태도:${r.att||'—'}`).join('\n')}\n\n성적추이:\n${sd?.rows?.map(r=>`${r.label}: ${r.vals.map(v=>v??'—').join(', ')}`).join('\n')||'없음'}`;
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,system:'당신은 영어 학원 강사의 AI 조교입니다. 학생 데이터를 분석해 총평과 다음 목표를 작성해주세요. 총평은 3-4문장, 목표는 1-2문장으로 간결하게 작성하세요.',messages:[{role:'user',content:`다음 학생의 8회차 수업 데이터를 분석해 총평과 다음 목표를 JSON으로 반환해주세요.\n\n${context}\n\n반환 형식: {"summary":"총평 내용","goal":"다음 목표 내용"}`}]})});
+    const res=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,system:'당신은 영어 학원 강사의 AI 조교입니다. 학생 데이터를 분석해 총평과 다음 목표를 작성해주세요. 총평은 3-4문장, 목표는 1-2문장으로 간결하게 작성하세요.',messages:[{role:'user',content:`다음 학생의 8회차 수업 데이터를 분석해 총평과 다음 목표를 JSON으로 반환해주세요.\n\n${context}\n\n반환 형식: {"summary":"총평 내용","goal":"다음 목표 내용"}`}]})});
     const data=await res.json();const txt=data.content?.[0]?.text||'';
     const clean=txt.replace(/```json|```/g,'').trim();const parsed=JSON.parse(clean);
     DB.lessons[nm].summary=parsed.summary;DB.lessons[nm].goal=parsed.goal;
@@ -2352,7 +2352,7 @@ async function genKakaoConsult(){
 
 항상 따뜻하고 전문적인 톤으로, 200~300자 내외로 작성하세요.`;
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch('/api/gemini',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
         system:sys,messages:[{role:'user',content:`다음 학생 데이터를 바탕으로 학부모 상담 카카오 문자를 작성해주세요:\n\n${ctx}`}]})
@@ -2628,7 +2628,7 @@ ${studentCtx}
 응답 지침: 학부모 상담 보고서는 수업진도·성적추이·태도·강점·개선점·목표 순으로 체계적으로 작성. 카카오 문자는 200자 이내. 성적 분석은 수치 변화를 구체적으로 서술. 한국어로 실용적이고 따뜻하게 작성.`;
   
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,system:sys,messages:[{role:'user',content:q}]})});
+    const res=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,system:sys,messages:[{role:'user',content:q}]})});
     const data=await res.json();const ans=(data.content?.[0]?.text||'오류가 발생했습니다.').replace(/\n/g,'<br>');
     document.getElementById(tid)?.querySelector('.mb2')&&(document.getElementById(tid).querySelector('.mb2').innerHTML=ans);
     if(isReport){document.getElementById('rpResult').innerHTML=`<div class="rpt-box">${ans.replace(/<br>/g,'\n')}</div><div style="margin-top:8px;display:flex;gap:6px"><button class="btn b-ghost b-sm" onclick="navigator.clipboard.writeText(document.querySelector('.rpt-box').textContent).then(()=>toast('📋 복사완료!'))">📋 복사</button></div>`;}
