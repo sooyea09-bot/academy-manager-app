@@ -2010,14 +2010,14 @@ function showLesson(nm){
   const scoreKeys=['word','baek','dan','rev','ext1','ext2'];
   const body=ld.rows.map((r,ri)=>{
     let row=`<div style="font-weight:700;font-family:var(--M);justify-content:center;color:var(--ink);padding:9px 8px 9px 16px;">${r.no}</div>`;
-    row+=`<div style="color:var(--ink3);font-size:11px">${r.date?.slice(5)||''}</div>`;
-    row+=`<div style="line-height:1.5;white-space:pre-wrap;cursor:pointer" ondblclick="editLF('${nm}',${ri},'content',this)">${r.content||'—'}</div>`;
-    if(showHw)row+=`<div style="line-height:1.5;white-space:pre-wrap;cursor:pointer;color:var(--ink3)" ondblclick="editLF('${nm}',${ri},'hw',this)">${r.hw||'—'}</div>`;
-    row+=`<div style="justify-content:center;cursor:pointer" ondblclick="editLF('${nm}',${ri},'rate',this)">${r.rate||'—'}</div>`;
+    row+=`<div style="color:var(--ink3);font-size:11px">${r.date?.slice(5)||''}${r.tnote?' 🧑‍🏫':''}</div>`;
+    row+=`<div style="line-height:1.5;white-space:pre-wrap">${r.content||'—'}</div>`;
+    if(showHw)row+=`<div style="line-height:1.5;white-space:pre-wrap;color:var(--ink3)">${r.hw||'—'}</div>`;
+    row+=`<div style="justify-content:center">${r.rate||'—'}</div>`;
     scoreCols.forEach((f,fi)=>{const v=r[scoreKeys[fi]];row+=`<div style="justify-content:center">${scV(v,f.dir)}</div>`;});
-    if(showAtt)row+=`<div style="justify-content:center" onclick="openAttPop('${nm}',${ri},this)">${attB(r.att)}</div>`;
-    if(showNote)row+=`<div style="font-size:11px;color:var(--ink3);cursor:pointer" ondblclick="editLF('${nm}',${ri},'note',this)">${r.note||'—'}</div>`;
-    return`<div class="lg-row" style="${gs};background:${ri%2?'rgba(245,243,238,.5)':''}">${row}</div>`;
+    if(showAtt)row+=`<div style="justify-content:center" onclick="event.stopPropagation();openAttPop('${nm}',${ri},this)">${attB(r.att)}</div>`;
+    if(showNote)row+=`<div style="font-size:11px;color:var(--ink3)">${r.note||'—'}</div>`;
+    return`<div class="lg-row" onclick="openLessonDetail('${nm}',${ri})" title="클릭: 상세 보기 / 수정" style="${gs};background:${ri%2?'rgba(245,243,238,.5)':''};cursor:pointer">${row}</div>`;
   }).join('');
   document.getElementById('lesBody').innerHTML=`<div class="lg-hd" style="${gs}">${hd}</div>`+body;
   document.getElementById('lesMeta').innerHTML=`
@@ -2026,6 +2026,26 @@ function showLesson(nm){
   if(document.getElementById('page-unified')?.classList.contains('on')){
     const us=document.getElementById('uniSel')?.value;if(us===nm)renderUnified(nm);
   }
+}
+function openLessonDetail(nm,ri){
+  const r=DB.lessons[nm]?.rows[ri]; if(!r)return;
+  const st=DB.students.find(s=>s.name===nm);
+  const fields=getCfgFields(st?.stype||'mid');
+  const keys=['word','baek','dan','rev','ext1','ext2'];
+  const scoreRows=fields.slice(0,4).map((f,i)=>`<div style="color:var(--ink3);font-weight:700">${f.label}</div><div>${scV(r[keys[i]],f.dir)}</div>`).join('');
+  const body=`<div style="font-size:13px;line-height:1.9">
+    <div style="font-size:16px;font-weight:800;margin-bottom:2px">${r.no||''} <span style="font-size:12px;font-weight:600;color:var(--ink3)">${r.date?fmtKDate(r.date):''}</span></div>
+    <div style="margin-bottom:12px">${attB(r.att)} <span class="badge b-dk" style="margin-left:4px">완료도 ${r.rate||'—'}</span></div>
+    <div style="margin-bottom:8px"><div style="color:var(--ink3);font-weight:700;margin-bottom:4px">📌 수업 내용</div><div style="white-space:pre-wrap;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:12px">${r.content||'—'}</div></div>
+    <div style="margin-bottom:8px"><div style="color:var(--ink3);font-weight:700;margin-bottom:4px">✏️ 숙제 미완료</div><div style="white-space:pre-wrap;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:12px">${r.hw||'—'}</div></div>
+    <div style="display:grid;grid-template-columns:120px 1fr;gap:5px 10px;margin:10px 0;align-items:center">${scoreRows}</div>
+    ${r.note?`<div style="margin-bottom:6px"><div style="color:var(--ink3);font-weight:700;margin-bottom:4px">특이사항</div><div>${r.note}</div></div>`:''}
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--bd)">
+      <div style="color:var(--amber);font-weight:700;margin-bottom:4px">🧑‍🏫 선생님 기록 <span style="font-size:10px;color:var(--ink4);font-weight:500">(통합 리포트에는 반영 안 됨)</span></div>
+      <div style="white-space:pre-wrap;background:#FBF3E2;border:1px solid #F0E0B0;border-radius:8px;padding:12px;min-height:48px">${r.tnote||'(선생님 기록이 없습니다)'}</div>
+    </div>
+  </div>`;
+  openMod(`${nm} ${r.no||''} 상세`,body,`<button class="btn b-blue" onclick="editLRow('${nm}',${ri})">수정</button><button class="btn b-ink" onclick="closeMod()">닫기</button>`);
 }
 function editLF(nm,ri,field,el){
   const cur=DB.lessons[nm]?.rows[ri]?.[field]||'';
@@ -2070,6 +2090,7 @@ function openLessonAddModal(){
     <div class="ff"><div class="fl">수업 내용</div><textarea class="fta" id="lcon" rows="2" placeholder="오늘 수업한 내용을 입력하세요..."></textarea></div>
     ${showHw?`<div class="ff"><div class="fl">숙제 미완료</div><textarea class="fta" id="lhw" rows="2" placeholder="숙제 미완료 내용을 입력하세요..."></textarea></div>`:'<input type="hidden" id="lhw">'}
     ${showNote?`<div class="ff"><div class="fl">특이사항</div><input class="fi" id="lnote" placeholder="특이사항..."></div>`:'<input type="hidden" id="lnote">'}
+    <div class="ff"><div class="fl">🧑‍🏫 선생님 기록 <span style="color:var(--ink4);font-size:10px">(통합·학부모 문구 미반영)</span></div><textarea class="fta" id="ltn" rows="2" placeholder="이 회차 선생님용 메모 — 통합 리포트나 학부모 카톡에는 들어가지 않습니다"></textarea></div>
   </div>
   <div class="fg">
     <div class="ff"><div class="fl">${f0.label} ${f0.dir==='up'?'↑':'↓'}</div><input class="fi" type="number" id="lw" placeholder="${f0.dir==='down'?'틀린 수':'점수'}"></div>
@@ -2089,7 +2110,7 @@ function saveLR(nm){
   if(!gv('ldt')){toast('수업일을 입력하세요');return;}
   const attEl=document.querySelector('#attSel .att:not(.a-no)');const att=attEl?.dataset.att||null;
   if(!DB.lessons[nm])DB.lessons[nm]={period:'',attend:'',summary:'',goal:'',rows:[]};
-  const row={no:gv('lno'),date:gv('ldt'),content:gv('lcon'),hw:gv('lhw'),rate:gv('lrt'),word:tn(gv('lw')),baek:tn(gv('lb')),dan:tn(gv('ld')),rev:tn(gv('lr')),att};
+  const row={no:gv('lno'),date:gv('ldt'),content:gv('lcon'),hw:gv('lhw'),rate:gv('lrt'),word:tn(gv('lw')),baek:tn(gv('lb')),dan:tn(gv('ld')),rev:tn(gv('lr')),att,tnote:gv('ltn'),note:gv('lnote')};
   DB.lessons[nm].rows.push(row);
   if(gv('lsum'))DB.lessons[nm].summary=gv('lsum');
   if(gv('lgoal'))DB.lessons[nm].goal=gv('lgoal');
@@ -2127,6 +2148,8 @@ function editLRow(nm,ri){
     </div>
     <div class="ff fs2"><div class="fl">수업 내용</div><textarea class="fta" id="econ" rows="2">${r.content||''}</textarea></div>
     <div class="ff fs2"><div class="fl">숙제 미완료</div><textarea class="fta" id="ehw" rows="2">${r.hw||''}</textarea></div>
+    <div class="ff fs2"><div class="fl">🧑‍🏫 선생님 기록 <span style="color:var(--ink4);font-size:10px">(통합·학부모 문구 미반영)</span></div><textarea class="fta" id="etn" rows="2">${r.tnote||''}</textarea></div>
+    <div class="ff fs2"><div class="fl">특이사항</div><input class="fi" id="enote" value="${r.note||''}"></div>
     <div class="ff"><div class="fl">단어</div><input class="fi" type="number" id="ew" value="${r.word??''}"></div>
     <div class="ff"><div class="fl">백지</div><input class="fi" type="number" id="eb" value="${r.baek??''}"></div>
     <div class="ff"><div class="fl">단원/모의</div><input class="fi" type="number" id="ed" value="${r.dan??''}"></div>
@@ -2137,7 +2160,7 @@ function selEditAtt(el){document.querySelectorAll('#eAttSel .att').forEach(e=>e.
 function saveEditLR(nm,ri){
   const tn=v=>v===''?null:v?Number(v):null;
   const attEl=document.querySelector('#eAttSel .att:not(.a-no)');
-  Object.assign(DB.lessons[nm].rows[ri],{no:gv('eno'),date:gv('edt'),content:gv('econ'),hw:gv('ehw'),rate:gv('ert'),word:tn(gv('ew')),baek:tn(gv('eb')),dan:tn(gv('ed')),rev:tn(gv('er')),att:attEl?.dataset.att||DB.lessons[nm].rows[ri].att||null});
+  Object.assign(DB.lessons[nm].rows[ri],{no:gv('eno'),date:gv('edt'),content:gv('econ'),hw:gv('ehw'),rate:gv('ert'),word:tn(gv('ew')),baek:tn(gv('eb')),dan:tn(gv('ed')),rev:tn(gv('er')),att:attEl?.dataset.att||DB.lessons[nm].rows[ri].att||null,tnote:gv('etn'),note:gv('enote')});
   // 성적카드 연동
   const st=DB.students.find(s=>s.name===nm);const tab=st?.stype||'mid';const db=tab==='mid'?DB.scMid:DB.scHigh;
   if(db[nm]&&ri<8){const r=DB.lessons[nm].rows[ri];const sc=db[nm].rows;if(r.word!=null)sc[0].vals[ri]=r.word;if(r.baek!=null)sc[1].vals[ri]=r.baek;if(r.dan!=null)sc[2].vals[ri]=r.dan;if(r.rev!=null)sc[3].vals[ri]=r.rev;}
