@@ -378,10 +378,8 @@ tr:hover .ta{opacity:1}
   background:#f7f8fa;border:1.5px solid #eee;border-radius:11px;
   padding:10px 13px;
   display:flex;align-items:center;gap:10px;
-  cursor:pointer;transition:border .14s;
   flex-shrink:0;
 }
-.sb-academy-box:hover{border-color:#3D6FFF;}
 .sb-academy-thumb{
   width:34px;height:34px;border-radius:8px;
   background:#fff;border:1.5px solid #111;
@@ -512,20 +510,16 @@ tr:hover .ta{opacity:1}
       <button class="auth-btn" onclick="authLogin()">로그인</button>
     </div>
     <div id="signupForm" style="display:none">
-      <div class="auth-mode-tabs" style="margin-top:8px">
-        <button id="join-new" class="on" onclick="authJoinMode('new')">학원 새로 만들기</button>
-        <button id="join-exist" onclick="authJoinMode('exist')">초대 코드로 가입</button>
-      </div>
       <label>이름</label>
       <input type="text" id="suName" placeholder="홍길동">
-      <div id="newAcademyFields">
-        <label>학원 이름</label>
-        <input type="text" id="suAcademyName" placeholder="예: 엑설런스 영어">
-      </div>
-      <div id="existAcademyFields" style="display:none">
-        <label>초대 코드 <span style="color:#888;font-weight:400">(학원장에게 받기)</span></label>
-        <input type="text" id="suInviteCode" placeholder="예: A3F8B2C1" style="text-transform:uppercase">
-      </div>
+      <label>학원/교습소 이름</label>
+      <input type="text" id="suAcademyName" placeholder="예: 엑설런스 영어">
+      <label>구분</label>
+      <select id="suRole">
+        <option value="소규모학원 원장">소규모학원 원장</option>
+        <option value="개인과외교습자">개인과외교습자</option>
+        <option value="선생님">선생님</option>
+      </select>
       <label>이메일</label>
       <input type="email" id="suEmail" placeholder="teacher@example.com">
       <label>비밀번호 <span style="color:#888;font-weight:400">(6자 이상)</span></label>
@@ -533,8 +527,11 @@ tr:hover .ta{opacity:1}
       <button class="auth-btn" onclick="authSignup()">회원가입</button>
     </div>
     <div id="authErr" class="auth-err"></div>
-    <div class="auth-switch" style="margin-top:20px;border-top:1px solid #eee;padding-top:14px">
-      <span id="invite-info-tip" style="display:none;color:#888">💡 새로 학원을 만든 분은 회원가입 후<br>설정 페이지에서 다른 선생님 초대 가능</span>
+    <div class="auth-switch" style="margin-top:16px">
+      <span id="forgot-pw-link" style="color:#666;cursor:pointer;text-decoration:underline" onclick="authResetPw()">비밀번호를 잊으셨나요?</span>
+    </div>
+    <div class="auth-switch" style="margin-top:12px;border-top:1px solid #eee;padding-top:14px">
+      <span id="invite-info-tip" style="display:none;color:#888">💡 가입하면 입력하신 이메일로 인증 메일이 발송됩니다.</span>
     </div>
   </div>
 </div>
@@ -566,9 +563,6 @@ tr:hover .ta{opacity:1}
       <div class="sb-academy-name" id="sbAcademyName">엑설런스 영어</div>
       <div class="sb-academy-teacher" id="sbAcademyTeacher">엄지T 선생님</div>
     </div>
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0">
-      <path d="M3.5 5L7 8.5L10.5 5" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
   </div>
 
   <!-- 네비 메뉴 (스크롤 영역) -->
@@ -1038,11 +1032,14 @@ function authSetMode(mode){
   document.getElementById('invite-info-tip').style.display = mode==='signup'?'block':'none';
   document.getElementById('authErr').style.display = 'none';
 }
-function authJoinMode(mode){
-  document.getElementById('join-new').classList.toggle('on', mode==='new');
-  document.getElementById('join-exist').classList.toggle('on', mode==='exist');
-  document.getElementById('newAcademyFields').style.display = mode==='new'?'block':'none';
-  document.getElementById('existAcademyFields').style.display = mode==='exist'?'block':'none';
+function authJoinMode(mode){ /* 초대코드 가입 제거됨 — 더 이상 사용 안 함 */ }
+// 비밀번호 재설정: 입력한 이메일로 재설정 링크 발송 (보안상 기존 비밀번호는 보낼 수 없어 '새 비밀번호 설정' 링크를 보냅니다)
+async function authResetPw(){
+  const email = (document.getElementById('loginEmail')?.value||'').trim() || prompt('가입한 이메일을 입력하세요');
+  if(!email) return;
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin });
+  if(error) return showAuthErr(error.message);
+  showAuthErr('✅ '+email+' 으로 비밀번호 재설정 메일을 보냈습니다. 메일의 링크를 눌러 새 비밀번호를 설정하세요.');
 }
 function showAuthErr(msg){
   const e = document.getElementById('authErr');
@@ -1062,20 +1059,18 @@ async function authSignup(){
   const name = document.getElementById('suName').value.trim();
   const email = document.getElementById('suEmail').value.trim();
   const pw = document.getElementById('suPw').value;
-  const isNew = document.getElementById('join-new').classList.contains('on');
   const academyName = document.getElementById('suAcademyName').value.trim();
-  const inviteCode = document.getElementById('suInviteCode').value.trim().toUpperCase();
+  const role = document.getElementById('suRole')?.value || '소규모학원 원장';
   if(!name || !email || !pw) return showAuthErr('이름/이메일/비밀번호 모두 입력');
   if(pw.length < 6) return showAuthErr('비밀번호는 6자 이상');
-  if(isNew && !academyName) return showAuthErr('학원 이름을 입력하세요');
-  if(!isNew && !inviteCode) return showAuthErr('초대 코드를 입력하세요');
+  if(!academyName) return showAuthErr('학원/교습소 이름을 입력하세요');
   const {data, error} = await sb.auth.signUp({
     email, password: pw,
-    options:{data:{name, academy_name: isNew?academyName:null, invite_code: isNew?null:inviteCode}}
+    options:{data:{name, academy_name: academyName, role: role, approved: false}, emailRedirectTo: location.origin}
   });
   if(error) return showAuthErr(error.message);
   if(!data.session){
-    showAuthErr('이메일 인증 메일을 확인하세요');
+    showAuthErr('✅ 가입 신청 완료! 입력하신 이메일로 인증 메일을 보냈습니다. 메일 인증 후 원장님 승인이 완료되면 이용할 수 있어요.');
     return;
   }
   await loadUserProfile();
@@ -1274,6 +1269,17 @@ sb.auth.onAuthStateChange((event, session)=>{
   if(event === 'SIGNED_OUT'){
     currentUser = null;
     showAuthScreen();
+  }
+  // 비밀번호 재설정 메일 링크로 돌아온 경우 → 새 비밀번호 설정
+  if(event === 'PASSWORD_RECOVERY'){
+    const np = prompt('새 비밀번호를 입력하세요 (6자 이상)');
+    if(np && np.length>=6){
+      sb.auth.updateUser({password:np}).then(({error})=>{
+        alert(error ? ('오류: '+error.message) : '✅ 비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요.');
+      });
+    } else if(np!==null){
+      alert('비밀번호는 6자 이상이어야 합니다. 재설정 메일 링크를 다시 눌러 진행하세요.');
+    }
   }
 });
 </script>
@@ -2743,7 +2749,6 @@ function renderTodo(){
       <span style="font-size:10px;font-weight:700;color:${t.priority==='★★★'?'var(--red)':t.priority==='★★'?'var(--amber)':'var(--ink3)'}">${t.priority}</span>
       <span style="font-size:10.5px;color:var(--ink3);min-width:28px">${t.est||''}</span>
       ${ddB(dday(t.due))}
-      ${t.claude==='O'?'<span class="badge b-B" style="font-size:9px">🤖 Claude</span>':''}
       <div class="ta" style="opacity:1"><button class="btn b-ghost b-xs" onclick="editTodo(${t.id})">수정</button><button class="btn b-red b-xs" onclick="delTodo(${t.id})">삭제</button></div>
     </div>`).join('')||'<div style="padding:20px;text-align:center;color:var(--ink3)">항목 없음</div>';
 }
@@ -2776,7 +2781,6 @@ const tfF=(t={})=>`<div class="fg">
   <div class="ff"><div class="fl">예상 시간</div><input class="fi" id="tes" value="${t.est||''}"></div>
   <div class="ff"><div class="fl">우선순위</div><select class="fsel" id="tpr">${['★★★','★★','★'].map(p=>`<option ${t.priority===p?'selected':''}>${p}</option>`).join('')}</select></div>
   <div class="ff"><div class="fl">상태</div><select class="fsel" id="tst">${['미시작','진행중','완료'].map(s=>`<option ${t.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
-  <div class="ff"><div class="fl">Claude 활용</div><select class="fsel" id="tcl"><option value="O" ${t.claude==='O'?'selected':''}>O (Claude 사용)</option><option value="X" ${t.claude==='X'?'selected':''}>X</option></select></div>
   <div class="ff fs2"><div class="fl">메모</div><input class="fi" id="tnt" value="${t.note||''}"></div>
 </div>`;
 function openTodoModal(t={}){openMod(t.id?'TODO 수정':'TODO 추가',tfF(t),`<button class="btn b-ghost" onclick="closeMod()">취소</button><button class="btn b-blue" onclick="saveTodo(${t.id||0})">저장</button>`);}
