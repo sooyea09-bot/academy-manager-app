@@ -378,9 +378,9 @@ tr:hover .ta{opacity:1}
 .sb-academy-box:hover{border-color:#3D6FFF;}
 .sb-academy-thumb{
   width:34px;height:34px;border-radius:8px;
-  background:linear-gradient(135deg,#3D6FFF,#6A3DFF);
+  background:#fff;border:1.5px solid #111;
   display:flex;align-items:center;justify-content:center;
-  color:#fff;font-size:13px;font-weight:900;flex-shrink:0;
+  color:#111;font-size:15px;font-weight:900;flex-shrink:0;
 }
 .sb-academy-info{flex:1;min-width:0;}
 .sb-academy-name{
@@ -555,7 +555,7 @@ tr:hover .ta{opacity:1}
 
   <!-- 학원 박스 -->
   <div class="sb-academy-box" id="sbAcademyBox">
-    <div class="sb-academy-thumb" id="sbAcademyThumb">학</div>
+    <div class="sb-academy-thumb" id="sbAcademyThumb">관</div>
     <div class="sb-academy-info">
       <div class="sb-academy-name" id="sbAcademyName">엑설런스 영어</div>
       <div class="sb-academy-teacher" id="sbAcademyTeacher">엄지T 선생님</div>
@@ -703,12 +703,12 @@ tr:hover .ta{opacity:1}
 
 <!-- ═══════════════ SCORES ═══════════════ -->
 <div class="page" id="page-scores">
-  <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
     <span class="badge b-dk" style="font-size:12px">📚 성적카드 (초중·고등 통합)</span>
+    <select class="fsel" style="width:220px" id="scSel" onchange="selScName(this.value)"></select>
     <button class="btn b-blue b-sm" onclick="openScoreModal()">+ 성적 입력</button>
-    <span style="font-size:11px;color:var(--ink3)">학생 이름 클릭 → 그래프 보기 · 셀 더블클릭 → 점수 수정</span>
+    <span style="font-size:11px;color:var(--ink3)">학생 선택 → 그래프 보기 · 셀 더블클릭 → 점수 수정</span>
   </div>
-  <div id="scNameList" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px"></div>
   <div class="g2">
     <div class="card"><div class="ch"><span>📊</span><h3>8회차 성적 추이</h3><span class="sub" id="scSub"></span></div><div class="tw"><table><thead><tr id="scHd"></tr></thead><tbody id="scTb"></tbody></table></div></div>
     <div class="card"><div class="ch"><span>📈</span><h3>성적 차트</h3><span class="sub" id="scChartName"></span></div><div class="cb"><canvas id="scCvs" height="180"></canvas></div></div>
@@ -1078,7 +1078,7 @@ function renderUserBanner(){
   // 사이드바 학원 박스 + 유저 로우에 로그인한 계정 정보 반영
   const an=document.getElementById('sbAcademyName'); if(an) an.textContent = acad;
   const at=document.getElementById('sbAcademyTeacher'); if(at) at.textContent = teacher + ' ' + roleTxt;
-  const thumb=document.getElementById('sbAcademyThumb'); if(thumb) thumb.textContent = acad.slice(0,1);
+  const thumb=document.getElementById('sbAcademyThumb'); if(thumb) thumb.textContent = '관';
   const un=document.getElementById('sbUserName'); if(un) un.textContent = teacher + '님';
   const av=document.getElementById('sbUserAvatar'); if(av) av.textContent = teacher.slice(0,1);
 }
@@ -1509,7 +1509,7 @@ function renderHome(){
     <div class="stat"><div class="sl">D-day 3일 이내</div><div class="sv2" style="color:var(--amber)">${DB.exams.filter(e=>{ const d=dday(e.date);return d>=0&&d<=3;}).length}<span>건</span></div></div>
     <div class="stat"><div class="sl">상담 전환율</div><div class="sv2">${conv}<span>%</span></div></div>`;
   const sorted=[...DB.exams].sort((a,b)=>new Date(a.date)-new Date(b.date));
-  document.getElementById('hDday').innerHTML=sorted.slice(0,8).map(e=>`<tr><td><b>${e.name}</b></td><td>${e.school}</td><td>${e.exam}</td><td>${ddB(dday(e.date))}</td><td>${stB(e.variation)}</td><td>${stB(e.book)}</td></tr>`).join('');
+  document.getElementById('hDday').innerHTML=sorted.slice(0,8).map(e=>`<tr><td><b>${e.name}</b></td><td>${e.school}</td><td>${e.exam}</td><td>${ddB(dday(e.date))}</td><td onclick="cycleEx(${e.id},'variation')" style="cursor:pointer" title="클릭: 완료/미완료 변경">${stB(e.variation)}</td><td onclick="cycleEx(${e.id},'book')" style="cursor:pointer" title="클릭: 완료/미완료 변경">${stB(e.book)}</td></tr>`).join('');
   document.getElementById('hTodo').innerHTML=urg.slice(0,6).map(t=>`
     <div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--bd)">
       <div style="width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0"></div>
@@ -1536,15 +1536,34 @@ function renderStudents(){
   const q=document.getElementById('stuQ')?.value||'';
   const gf=document.getElementById('stuGF')?.value||'';
   const list=DB.students.filter(s=>(!q||s.name.includes(q)||s.school.includes(q))&&(!gf||s.grade.includes(gf==='초등'?'초':gf==='중학'?'중':'고')));
-  document.getElementById('stuTb').innerHTML=list.map(s=>`<tr>
+  document.getElementById('stuTb').innerHTML=list.map(s=>`<tr onclick="openStudentDetail(${s.id})" style="cursor:pointer" title="클릭: 상세/메모 보기">
     <td>${s.no}</td><td><b>${s.name}</b></td><td>${s.school}</td><td>${s.grade}</td>
     <td>${trkB(s.track)}</td><td style="color:var(--ink3)">${s.book||'—'}</td>
     <td style="font-family:var(--M);font-size:11px">${s.day1?s.day1+' '+s.t1:'—'}</td>
     <td style="font-family:var(--M);font-size:11px">${s.day2?s.day2+' '+s.t2:'—'}</td>
     <td style="font-family:var(--M);font-size:11px">${s.parent||'—'}</td>
     <td style="color:var(--ink3)">${s.memo||'—'}</td>
-    <td><div class="ta"><button class="btn b-ghost b-xs" onclick="editStu(${s.id})">수정</button><button class="btn b-red b-xs" onclick="delStu(${s.id})">삭제</button></div></td>
+    <td><div class="ta"><button class="btn b-ghost b-xs" onclick="event.stopPropagation();editStu(${s.id})">수정</button><button class="btn b-red b-xs" onclick="event.stopPropagation();delStu(${s.id})">삭제</button></div></td>
   </tr>`).join('');
+}
+function openStudentDetail(id){
+  const s=DB.students.find(x=>x.id===id);if(!s)return;
+  const days=[s.day1?`${s.day1} ${s.t1||''}`:'',s.day2?`${s.day2} ${s.t2||''}`:''].filter(Boolean).join(' / ')||'—';
+  const body=`<div style="font-size:13px;line-height:1.9">
+    <div style="font-size:17px;font-weight:800;margin-bottom:2px">${s.name} <span style="font-size:12px;font-weight:600;color:var(--ink3)">${s.grade||''} · ${s.school||''}</span></div>
+    <div style="margin-bottom:12px">${trkB(s.track||'')} <span class="badge ${s.stype==='high'?'b-high':'b-mid'}" style="margin-left:4px">${s.stype==='high'?'고등':'초중'}</span></div>
+    <div style="display:grid;grid-template-columns:100px 1fr;gap:6px 10px">
+      <div style="color:var(--ink3);font-weight:700">교재/출판사</div><div>${s.book||'—'}</div>
+      <div style="color:var(--ink3);font-weight:700">수업 일정</div><div>${days}</div>
+      <div style="color:var(--ink3);font-weight:700">학부모 연락처</div><div>${s.parent||'—'}</div>
+      <div style="color:var(--ink3);font-weight:700">학생 연락처</div><div>${s.student||'—'}</div>
+    </div>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--bd)">
+      <div style="color:var(--ink3);font-weight:700;margin-bottom:6px">📝 메모 / 상세 내용</div>
+      <div style="white-space:pre-wrap;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:14px;min-height:90px">${s.memo||'(메모 내용이 없습니다)'}</div>
+    </div>
+  </div>`;
+  openMod('학생 상세',body,`<button class="btn b-blue" onclick="editStu(${s.id})">수정</button><button class="btn b-ink" onclick="closeMod()">닫기</button>`);
 }
 const sfF=(s={})=>`<div class="fg">
   <div class="ff"><div class="fl">이름 *</div><input class="fi" id="sn" value="${s.name||''}"></div>
@@ -1601,13 +1620,13 @@ function buildScSel(){ renderScores(); }
 function renderScores(){
   ensureStudentRecords();
   const list=scAllStudents();
-  const nl=document.getElementById('scNameList');
-  if(!list.length){ if(nl)nl.innerHTML='<span style="font-size:12px;color:var(--ink3)">학생이 없습니다. 학생 관리에서 먼저 추가하세요.</span>'; return; }
+  const sel=document.getElementById('scSel');
+  if(!list.length){ if(sel)sel.innerHTML=''; const tb=document.getElementById('scTb'); if(tb)tb.innerHTML='<tr><td style="padding:14px;color:var(--ink3)">학생이 없습니다. 학생 관리에서 먼저 추가하세요.</td></tr>'; return; }
   if(!curScName||!list.find(x=>x.name===curScName)) curScName=list[0].name;
-  if(nl) nl.innerHTML=list.map(s=>`<button class="sc-name-btn${s.name===curScName?' on':''}" onclick="selScName('${s.name}')">${s.name}<span class="badge ${s.type==='high'?'b-high':'b-mid'}" style="margin-left:6px;font-size:9px">${s.type==='high'?'고등':'초중'}</span></button>`).join('');
+  if(sel) sel.innerHTML=list.map(s=>`<option value="${s.name}" ${s.name===curScName?'selected':''}>${s.name} (${s.type==='high'?'고등':'초중'})</option>`).join('');
   renderScoreCard();
 }
-function selScName(nm){ curScName=nm; renderScores(); }
+function selScName(nm){ if(nm)curScName=nm; renderScores(); }
 function renderScoreCard(){
   const nm=curScName; if(!nm) return;
   const tab=scTypeOf(nm); curScTab=tab;
@@ -2534,18 +2553,37 @@ function renderUnified(nm){
 /* ═══════════════ EXAM ═══════════════ */
 function renderExam(){
   const sorted=[...DB.exams].sort((a,b)=>new Date(a.date)-new Date(b.date));
-  document.getElementById('examTb').innerHTML=sorted.map(e=>`<tr>
+  document.getElementById('examTb').innerHTML=sorted.map(e=>`<tr onclick="openExamDetail(${e.id})" style="cursor:pointer" title="클릭: 상세 보기">
     <td><b>${e.name}</b></td><td>${e.school}</td><td>${e.grade}</td><td>${e.exam}</td>
     <td style="font-family:var(--M);font-size:11px">${e.date}</td><td>${ddB(dday(e.date))}</td>
     <td>${e.pub||'—'}</td><td>${e.range||'—'}</td>
-    <td onclick="cycleEx(${e.id},'variation')" style="cursor:pointer">${stB(e.variation)}</td>
-    <td onclick="cycleEx(${e.id},'book')" style="cursor:pointer">${stB(e.book)}</td>
+    <td onclick="event.stopPropagation();cycleEx(${e.id},'variation')" style="cursor:pointer" title="클릭: 완료/미완료 변경">${stB(e.variation)}</td>
+    <td onclick="event.stopPropagation();cycleEx(${e.id},'book')" style="cursor:pointer" title="클릭: 완료/미완료 변경">${stB(e.book)}</td>
     <td style="color:var(--ink3)">${e.note||'—'}</td>
-    <td><div class="ta"><button class="btn b-ghost b-xs" onclick="editExam(${e.id})">수정</button><button class="btn b-red b-xs" onclick="delExam(${e.id})">삭제</button></div></td>
+    <td><div class="ta"><button class="btn b-ghost b-xs" onclick="event.stopPropagation();editExam(${e.id})">수정</button><button class="btn b-red b-xs" onclick="event.stopPropagation();delExam(${e.id})">삭제</button></div></td>
   </tr>`).join('');
 }
+function openExamDetail(id){
+  const e=DB.exams.find(x=>x.id===id);if(!e)return;
+  const dd=dday(e.date);const ddTxt=`${e.date||'—'} (${dd<0?'D+'+Math.abs(dd):dd===0?'D-Day':'D-'+dd})`;
+  const body=`<div style="font-size:13px;line-height:1.9">
+    <div style="font-size:17px;font-weight:800;margin-bottom:2px">${e.name} <span style="font-size:12px;font-weight:600;color:var(--ink3)">${e.grade||''} · ${e.school||''}</span></div>
+    <div style="margin-bottom:12px">${e.exam||''} · ${ddTxt}</div>
+    <div style="display:grid;grid-template-columns:100px 1fr;gap:6px 10px">
+      <div style="color:var(--ink3);font-weight:700">출판사/저자</div><div>${e.pub||'—'}</div>
+      <div style="color:var(--ink3);font-weight:700">시험범위</div><div>${e.range||'—'}</div>
+      <div style="color:var(--ink3);font-weight:700">변형문제</div><div>${stB(e.variation)}</div>
+      <div style="color:var(--ink3);font-weight:700">교재정리</div><div>${stB(e.book)}</div>
+    </div>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--bd)">
+      <div style="color:var(--ink3);font-weight:700;margin-bottom:6px">📝 비고 / 상세 내용</div>
+      <div style="white-space:pre-wrap;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:14px;min-height:80px">${e.note||'(비고 내용이 없습니다)'}</div>
+    </div>
+  </div>`;
+  openMod('내신 일정 상세',body,`<button class="btn b-blue" onclick="editExam(${e.id})">수정</button><button class="btn b-ink" onclick="closeMod()">닫기</button>`);
+}
 const SC=['❌미완료','⚠️진행중','✅완료'];
-function cycleEx(id,f){const e=DB.exams.find(x=>x.id===id);if(!e)return;const i=SC.indexOf(e[f]);e[f]=SC[(i+1)%SC.length];save();renderExam();}
+function cycleEx(id,f){const e=DB.exams.find(x=>x.id===id);if(!e)return;const i=SC.indexOf(e[f]);e[f]=SC[(i+1)%SC.length];save();if(document.getElementById('page-exam')?.classList.contains('on'))renderExam();if(document.getElementById('page-home')?.classList.contains('on'))renderHome();toast('→ '+e[f]);}
 const efF=(e={})=>`<div class="fg">
   <div class="ff"><div class="fl">학생 *</div><select class="fsel" id="en" onchange="let s=DB.students.find(x=>x.name===this.value);if(s){document.getElementById('esc').value=s.school;document.getElementById('eg').value=s.grade}">${DB.students.map(s=>`<option ${e.name===s.name?'selected':''}>${s.name}</option>`).join('')}</select></div>
   <div class="ff"><div class="fl">학교</div><input class="fi" id="esc" value="${e.school||''}"></div>
@@ -2571,8 +2609,8 @@ function renderTodo(){
   const sI={'미시작':'○','진행중':'↻','완료':'✓'};const sC={'미시작':'var(--ink4)','진행중':'var(--amber)','완료':'var(--green)'};
   document.getElementById('todoCard').innerHTML=list.map(t=>`
     <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--bd);${t.status==='완료'?'opacity:.5':''}">
-      <div onclick="cycleTodo(${t.id})" style="width:22px;height:22px;border-radius:50%;border:2px solid ${sC[t.status]};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${sC[t.status]};cursor:pointer;flex-shrink:0;transition:all .18s">${sI[t.status]||'○'}</div>
-      <div style="flex:1">
+      <div onclick="cycleTodo(${t.id})" style="width:22px;height:22px;border-radius:50%;border:2px solid ${sC[t.status]};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${sC[t.status]};cursor:pointer;flex-shrink:0;transition:all .18s" title="클릭: 완료/미완료 변경">${sI[t.status]||'○'}</div>
+      <div style="flex:1;cursor:pointer" onclick="openTodoMemo(${t.id})" title="클릭: 상세 내용 보기">
         <div style="font-size:12px;font-weight:600;${t.status==='완료'?'text-decoration:line-through;color:var(--ink3)':''}">${t.text}</div>
         <div style="font-size:10.5px;color:var(--ink3)">${t.target} · ${t.type}${t.note?' · '+t.note:''}</div>
       </div>
@@ -2859,7 +2897,7 @@ function applyUserToApp(user){
   // 새 사이드바 요소 반영
   const an=document.getElementById('sbAcademyName');if(an)an.textContent=user.academy;
   const at=document.getElementById('sbAcademyTeacher');if(at)at.textContent=user.teacher+' 선생님';
-  const thumb=document.getElementById('sbAcademyThumb');if(thumb)thumb.textContent=user.academy.slice(0,1);
+  const thumb=document.getElementById('sbAcademyThumb');if(thumb)thumb.textContent='관';
   const un=document.getElementById('sbUserName');if(un)un.textContent=user.teacher+'님';
   const av=document.getElementById('sbUserAvatar');if(av)av.textContent=user.teacher.slice(0,1);
   // 탭 타이틀
