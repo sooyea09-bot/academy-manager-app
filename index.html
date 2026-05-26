@@ -2842,6 +2842,24 @@ function kkShow(ans){
     <button class="btn b-blue b-sm" onclick="navigator.clipboard.writeText(document.getElementById('kkText').value).then(()=>toast('📋 카카오로 복사완료!'))">📋 카카오 복사</button>
   </div>`;
 }
+// 데일리 결과를 '수업 진도 메시지'와 '숙제' 두 칸으로 분리해 각각 복사 가능하게 표시
+function kkShowSplit(ans){
+  const res=document.getElementById('kkResult'); if(!res)return;
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let main=(ans||'').trim(), hw='';
+  const parts=(ans||'').split(/\n?={2,}\s*숙제\s*={2,}\n?/);
+  if(parts.length>=2){ main=parts[0].trim(); hw=parts.slice(1).join('\n').trim(); }
+  const box=(id,label,val,minH,empty)=>`
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:4px">${label}</div>
+      <textarea id="${id}" class="fta" style="width:100%;min-height:${minH};border:1.5px solid #eee;border-radius:10px;padding:12px;font-size:13px;line-height:1.85;font-family:'Noto Sans KR',sans-serif;color:#111">${esc(val||empty)}</textarea>
+      <div style="margin-top:6px;display:flex;justify-content:flex-end">
+        <button class="btn b-blue b-sm" onclick="navigator.clipboard.writeText(document.getElementById('${id}').value).then(()=>toast('📋 복사완료!'))">📋 복사</button>
+      </div>
+    </div>`;
+  res.innerHTML = box('kkText','📋 수업 진도 메시지 (복사)', main, '200px', '')
+    + box('kkHw','✔️ 숙제 (따로 복붙용)', hw, '120px', '✔️ 숙제\n(이 회차에 입력된 숙제가 없어요. 여기에 직접 적어 보내셔도 됩니다.)');
+}
 // 데일리 상담 카톡 문구 — 선택한 회차의 수업진도+성적으로 자동 작성
 async function genDaily(){
   const nm=document.getElementById('kkSel')?.value; if(!nm){toast('학생을 선택하세요');return;}
@@ -2867,7 +2885,7 @@ ${r.hw||'(없음)'}
 [오늘 성적] ${scoreLine}`;
   const sys=`당신은 '엑설런스 영어' 학원 강사 엄지T의 AI 조교입니다. 아래 수업 데이터로 학부모에게 보낼 '데일리 상담 카톡 문구'를 작성하세요.
 
-반드시 아래 형식과 순서, 이모지를 그대로 지키세요:
+반드시 두 부분으로 나누고, 그 사이에 '===숙제===' 라고만 적힌 줄을 정확히 한 번 넣으세요. (윗부분=수업 진도 메시지, 아랫부분=숙제)
 
 [학생이름] 학부모님, 안녕하세요 😊 엑설런스 영어 엄지T입니다.
 
@@ -2879,22 +2897,22 @@ ${r.hw||'(없음)'}
 📌 오늘 수업 진도
 1. ...
 2. ...
-
+===숙제===
 ✔️ 숙제
 1. ...
 2. ...
-
-[마지막에 따뜻한 격려/안내 한 문장]
+오늘도 잘 따라와 주었습니다. 감사합니다 😊
 
 규칙:
-- '오늘 수업 진도'와 '숙제'는 강사가 입력한 원문 항목을 그대로 번호 매겨 정리하세요. 내용을 새로 지어내지 마세요.
-- 데이터가 '미입력'/'없음'인 항목은 자연스럽게 생략하세요.
-- 공손하고 따뜻한 학부모 안내 톤, 한국어. 200~400자.`;
+- '===숙제===' 줄을 반드시 한 번 넣으세요. 그 위에는 수업 진도까지만, 그 아래에는 숙제 항목만 적으세요. 숙제를 수업 진도에 절대 섞지 마세요.
+- '오늘 수업 진도'와 '숙제'는 강사가 입력한 원문 항목을 그대로 번호 매겨 정리하고, 내용을 새로 지어내지 마세요.
+- '미입력'/'없음'인 항목은 자연스럽게 생략하세요. 숙제 데이터가 없으면 '===숙제===' 아래는 '✔️ 숙제'만 적고 비워두세요.
+- 공손하고 따뜻한 학부모 안내 톤, 한국어.`;
   try{
     const res=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,system:sys,messages:[{role:'user',content:ctx}]})});
     const data=await res.json();
     if(!res.ok){ kkResultBox('오류: '+(data.error||'생성 실패')); return; }
-    kkShow(data.content?.[0]?.text||'생성 실패');
+    kkShowSplit(data.content?.[0]?.text||'생성 실패');
   }catch(e){ kkResultBox('생성 실패: '+String(e.message||e)); }
 }
 // 8회차 통합 피드백 상담 카톡 문구
