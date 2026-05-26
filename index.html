@@ -1121,7 +1121,7 @@ function renderUserBanner(){
   if(navAdmin) navAdmin.style.display = (currentUser.email && ADMIN_EMAILS.indexOf(currentUser.email.toLowerCase())>=0) ? '' : 'none';
 }
 // 관리자 메뉴를 볼 수 있는 이메일(원장). 서버(api/admin-users)도 동일 이메일만 허용.
-const ADMIN_EMAILS = ['djasid11@naver.com','sooyea09@gmail.com'];
+const ADMIN_EMAILS = ['djasid11@naver.com'];
 async function renderAdmin(){
   const tb=document.getElementById('adminTb');
   const msg=document.getElementById('adminMsg');
