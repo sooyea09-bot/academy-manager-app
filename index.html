@@ -1648,7 +1648,7 @@ const sfF=(s={})=>`<div class="fg">
   <div class="ff"><div class="fl">이름 *</div><input class="fi" id="sn" value="${s.name||''}"></div>
   <div class="ff"><div class="fl">학교 *</div><input class="fi" id="ssc" value="${s.school||''}"></div>
   <div class="ff"><div class="fl">학년</div><input class="fi" id="sg" value="${s.grade||''}"></div>
-  <div class="ff"><div class="fl">트랙</div><select class="fsel" id="str">${['내신','수능','초등','내신+예고','내신+모의'].map(t=>`<option ${s.track===t?'selected':''}>${t}</option>`).join('')}</select></div>
+  <div class="ff"><div class="fl">트랙</div><select class="fsel" id="str">${['내신','수능','초등','중등','고등','국제학교','N수생','내신+예고','내신+모의'].map(t=>`<option ${s.track===t?'selected':''}>${t}</option>`).join('')}</select></div>
   <div class="ff"><div class="fl">성적 유형</div><select class="fsel" id="sstype"><option value="mid" ${s.stype==='mid'?'selected':''}>초중 (단원/복습)</option><option value="high" ${s.stype==='high'?'selected':''}>고등 (모의/미니)</option></select></div>
   <div class="ff"><div class="fl">교재/출판사</div><input class="fi" id="sbk" value="${s.book||''}"></div>
   <div class="ff"><div class="fl">학부모 연락처</div><input class="fi" id="spar" value="${s.parent||''}"></div>
