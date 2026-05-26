@@ -1177,16 +1177,17 @@ async function loadAllFromCloud(){
       }
       if(typeof toast === 'function') toast('☁️ 클라우드 데이터 불러옴');
     }else{
-      // 클라우드에 아직 없음(신규 선생님) → 이전 사용자 데이터가 섞이지 않도록 기본값으로 초기화 후 첫 저장
-      if(typeof DB !== 'undefined' && typeof INIT !== 'undefined'){
+      // 클라우드에 아직 없음(신규 가입자) → 예시/데모(다른 사람 학생) 데이터 없이 '빈 상태'로 시작
+      if(typeof DB !== 'undefined'){
+        const EMPTY = {students:[],scMid:{},scHigh:{},attendance:[],exams:[],todos:[],consults:[],lessons:{},cfg:JSON.parse(JSON.stringify((typeof INIT!=='undefined'&&INIT.cfg)?INIT.cfg:{}))};
         for(const k of Object.keys(DB)){ delete DB[k]; }
-        Object.assign(DB, JSON.parse(JSON.stringify(INIT)));
+        Object.assign(DB, EMPTY);
       }
       await sb.from('user_data').upsert(
         {user_id: currentUser.id, data: (typeof DB!=='undefined'?DB:{}), updated_at: new Date().toISOString()},
         {onConflict:'user_id'}
       );
-      if(typeof toast === 'function') toast('☁️ 클라우드 연결 완료');
+      if(typeof toast === 'function') toast('☁️ 새 계정으로 시작합니다');
     }
   }catch(e){ console.warn('loadAllFromCloud', e); }
 }
