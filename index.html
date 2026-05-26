@@ -1021,7 +1021,8 @@ tr:hover .ta{opacity:1}
 // ═══ Supabase 연동 ═══
 const SUPABASE_URL = 'https://wpvlgcyklnknzdtpnyxv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwdmxnY3lrbG5rbnpkdHBueXh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxODg0MzgsImV4cCI6MjA5NDc2NDQzOH0.fzUiS3v5JHRf0_jvvJwoNEsmOwap19ZCPZenzNnRqJA';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// persistSession:false → 새로고침/링크 재접속 시 자동 로그인 안 됨. 매번 로그인 창이 뜸 (보안)
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {auth:{persistSession:false, autoRefreshToken:true, detectSessionInUrl:true}});
 let currentUser = null;
 
 function authSetMode(mode){
@@ -1254,11 +1255,10 @@ async function cloudGetTeachers(){
 function getInviteCode(){ return currentUser?.invite_code || ''; }
 
 window.addEventListener('DOMContentLoaded', async ()=>{
-  // 로컬에 세션 토큰이 없으면 즉시 로그인 화면을 띄워 앱이 잠깐이라도 노출되는 것을 방지
-  // (토큰이 있으면 자동 로그인이므로 로그인 화면 깜빡임 없음)
-  let hasToken=false;
-  try{ for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf('sb-')===0&&k.indexOf('auth-token')>=0){hasToken=true;break;}} }catch(e){}
-  if(!hasToken) showAuthScreen();
+  // 자동 로그인 방지: 예전에 브라우저에 저장된 로그인 세션이 있으면 제거하고 항상 로그인 창부터 보여줌
+  try{ for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.indexOf('sb-')===0&&k.indexOf('auth-token')>=0)localStorage.removeItem(k);} }catch(e){}
+  showAuthScreen();
+  // 비밀번호 재설정/이메일 인증 링크로 들어온 경우에만 세션이 잡힘 (일반 접속은 항상 로그인 창)
   const {data:{session}} = await sb.auth.getSession();
   if(session) await loadUserProfile();
   else showAuthScreen();
