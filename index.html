@@ -681,6 +681,22 @@ tr:hover .ta{opacity:1}
           <div id="rpResult"></div>
         </div>
       </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="ch"><span>📱</span><h3>카톡 상담 문구 생성</h3><span class="sub">데일리 · 8회차</span></div>
+        <div class="cb">
+          <div class="fg" style="grid-template-columns:1fr 1fr;margin-bottom:8px">
+            <div class="ff"><div class="fl">학생 선택</div><select class="fsel" id="kkSel" onchange="kkFillRounds()"></select></div>
+            <div class="ff"><div class="fl">회차 (데일리용)</div><select class="fsel" id="kkRound"></select></div>
+          </div>
+          <div class="ff" style="margin-bottom:10px"><div class="fl">수업 시간</div><input class="fi" id="kkTime" value="2시간"></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn b-blue b-sm" onclick="genDaily()">📱 데일리 카톡 생성</button>
+            <button class="btn b-ghost b-sm" onclick="gen8Feedback()">📋 8회차 통합 피드백 생성</button>
+          </div>
+          <div style="font-size:11px;color:var(--ink3);margin-top:8px">수업 진도+성적을 입력하면 그 회차 데이터로 자동 작성됩니다. (카카오로 복사해 보내세요)</div>
+          <div id="kkResult" style="margin-top:10px"></div>
+        </div>
+      </div>
       <div class="card">
         <div class="ch"><span>💡</span><h3>AI 기능 안내</h3></div>
         <div style="padding:12px 16px;font-size:12px;color:var(--ink2);display:flex;flex-direction:column;gap:7px">
@@ -2803,8 +2819,109 @@ function delCon(id){if(!confirm('삭제?'))return;DB.consults=DB.consults.filter
 /* ═══════════════ AI 조교 ═══════════════ */
 function renderAI(){
   const sel=document.getElementById('rpSel');if(sel){sel.innerHTML=DB.students.map(s=>`<option>${s.name}</option>`).join('');}
+  const kk=document.getElementById('kkSel');if(kk){kk.innerHTML=DB.students.map(s=>`<option>${s.name}</option>`).join('');kkFillRounds();}
   const chips=['전한윤 상담 보고서 작성해줘','이도현 성적 분석해줘','이번 주 내신 D-day 알려줘','긴급 TODO 정리해줘','집중X·졸음 학생 패턴 분석해줘','전체 학생 성적 요약해줘'];
   document.getElementById('aiChips').innerHTML=chips.map(c=>`<span class="chip" onclick="askAI('${c}')">${c}</span>`).join('');
+}
+// 날짜 → '2026년 5월 24일(일)'
+function fmtKDate(d){ if(!d) return ''; const x=new Date(d); if(isNaN(x)) return d; const w=['일','월','화','수','목','금','토'][x.getDay()]; return `${x.getFullYear()}년 ${x.getMonth()+1}월 ${x.getDate()}일(${w})`; }
+// 데일리용 회차 드롭다운 채우기 (가장 최근 회차 기본 선택)
+function kkFillRounds(){
+  const nm=document.getElementById('kkSel')?.value;
+  const sel=document.getElementById('kkRound'); if(!sel)return;
+  const rows=(DB.lessons[nm]&&DB.lessons[nm].rows)||[];
+  sel.innerHTML=rows.length?rows.map((r,i)=>`<option value="${i}">${r.no||(i+1)+'회'} (${r.date?fmtKDate(r.date):'날짜미입력'})</option>`).join(''):'<option value="">기록 없음</option>';
+  if(rows.length) sel.value=String(rows.length-1);
+}
+function kkResultBox(title){ const res=document.getElementById('kkResult'); if(res) res.innerHTML=`<div style="padding:12px;text-align:center;color:var(--ink3);font-size:12px">${title}</div>`; return res; }
+function kkShow(ans){
+  const res=document.getElementById('kkResult'); if(!res)return;
+  const safe=(ans||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  res.innerHTML=`<textarea id="kkText" class="fta" style="width:100%;min-height:250px;border:1.5px solid #eee;border-radius:10px;padding:14px;font-size:13px;line-height:1.85;font-family:'Noto Sans KR',sans-serif;color:#111">${safe}</textarea>
+  <div style="margin-top:8px;display:flex;gap:6px;justify-content:flex-end">
+    <button class="btn b-blue b-sm" onclick="navigator.clipboard.writeText(document.getElementById('kkText').value).then(()=>toast('📋 카카오로 복사완료!'))">📋 카카오 복사</button>
+  </div>`;
+}
+// 데일리 상담 카톡 문구 — 선택한 회차의 수업진도+성적으로 자동 작성
+async function genDaily(){
+  const nm=document.getElementById('kkSel')?.value; if(!nm){toast('학생을 선택하세요');return;}
+  const ld=DB.lessons[nm];
+  if(!ld||!ld.rows||!ld.rows.length){toast('이 학생의 수업 기록이 없어요. 수업 진도+피드백에서 회차를 먼저 입력하세요.');return;}
+  const ri=Number(document.getElementById('kkRound')?.value||0);
+  const r=ld.rows[ri]; if(!r){toast('회차를 선택하세요');return;}
+  const st=DB.students.find(s=>s.name===nm);
+  const time=(document.getElementById('kkTime')?.value||'').trim()||'2시간';
+  kkResultBox('데일리 카톡 작성 중...');
+  const fields=getCfgFields(st?.stype||'mid');
+  const scoreLine=[`${fields[0]?.label||'단어'} ${r.word??'—'}`,`${fields[1]?.label||'백지'} ${r.baek??'—'}`,`${fields[2]?.label||'단원/모의'} ${r.dan??'—'}`,`${fields[3]?.label||'복습/미니'} ${r.rev??'—'}`].join(' / ');
+  const ctx=`학생: ${nm} (${st?.grade||''} ${st?.school||''})
+수업 날짜: ${fmtKDate(r.date)}
+수업 횟수: ${r.no||(ri+1)+'회'}
+수업 시간: ${time}
+숙제 상태(완료율): ${r.rate||'미입력'}
+수업 태도: ${r.att||'미기록'}
+[오늘 수업 진도 - 강사 입력 원문]
+${r.content||'(없음)'}
+[숙제 - 강사 입력 원문]
+${r.hw||'(없음)'}
+[오늘 성적] ${scoreLine}`;
+  const sys=`당신은 '엑설런스 영어' 학원 강사 엄지T의 AI 조교입니다. 아래 수업 데이터로 학부모에게 보낼 '데일리 상담 카톡 문구'를 작성하세요.
+
+반드시 아래 형식과 순서, 이모지를 그대로 지키세요:
+
+[학생이름] 학부모님, 안녕하세요 😊 엑설런스 영어 엄지T입니다.
+
+📅 수업 날짜: [수업 날짜]
+🔢 수업 횟수: [N회]  ⏱ 수업 시간: [수업 시간]
+✅ 숙제 상태: [완료율]
+🙆 수업 태도: [수업 태도를 자연스러운 한 문장으로]
+
+📌 오늘 수업 진도
+1. ...
+2. ...
+
+✔️ 숙제
+1. ...
+2. ...
+
+[마지막에 따뜻한 격려/안내 한 문장]
+
+규칙:
+- '오늘 수업 진도'와 '숙제'는 강사가 입력한 원문 항목을 그대로 번호 매겨 정리하세요. 내용을 새로 지어내지 마세요.
+- 데이터가 '미입력'/'없음'인 항목은 자연스럽게 생략하세요.
+- 공손하고 따뜻한 학부모 안내 톤, 한국어. 200~400자.`;
+  try{
+    const res=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,system:sys,messages:[{role:'user',content:ctx}]})});
+    const data=await res.json();
+    if(!res.ok){ kkResultBox('오류: '+(data.error||'생성 실패')); return; }
+    kkShow(data.content?.[0]?.text||'생성 실패');
+  }catch(e){ kkResultBox('생성 실패: '+String(e.message||e)); }
+}
+// 8회차 통합 피드백 상담 카톡 문구
+async function gen8Feedback(){
+  const nm=document.getElementById('kkSel')?.value; if(!nm){toast('학생을 선택하세요');return;}
+  kkResultBox('8회차 통합 피드백 작성 중...');
+  const ctx=buildStudentContext(nm);
+  const sys=`당신은 '엑설런스 영어' 학원 강사 엄지T의 AI 조교입니다. 학생의 8회차 전체 수업 데이터를 종합해 학부모에게 보낼 '8회차 통합 피드백 상담 카톡'을 작성하세요.
+
+반드시 아래 형식을 따르세요(이모지 포함):
+
+안녕하세요 어머니 😊 [학생이름] 학생 8회차 수업이 마무리되어 종합 피드백 전해드립니다.
+
+📖 단어/어휘: [암기 현황과 1→8회 변화 구체적으로]
+📚 독해: [독해력과 단원/모의 점수 변화]
+✏️ 문법: [문법 이해도]
+😊 수업 태도: [태도 통계 기반]
+⚠️ 보완할 점: [솔직하게]
+🎯 다음 목표: [구체적 학습 방향]
+
+규칙: 데이터에 있는 수치를 구체적으로 인용하세요. 데이터에 없으면 지어내지 말고 생략하세요. 따뜻하고 전문적인 톤, 한국어, 300~450자.`;
+  try{
+    const res=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,system:sys,messages:[{role:'user',content:`다음 학생의 8회차 데이터를 종합해 통합 피드백 카톡을 작성해주세요:\n\n${ctx}`}]})});
+    const data=await res.json();
+    if(!res.ok){ kkResultBox('오류: '+(data.error||'생성 실패')); return; }
+    kkShow(data.content?.[0]?.text||'생성 실패');
+  }catch(e){ kkResultBox('생성 실패: '+String(e.message||e)); }
 }
 function askAI(q){document.getElementById('aiInp').value=q;sendAI();}
 async function genReport(){
