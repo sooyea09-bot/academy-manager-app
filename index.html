@@ -442,9 +442,9 @@ tr:hover .ta{opacity:1}
 }
 .sb-user-avatar{
   width:28px;height:28px;border-radius:50%;
-  background:#eef2ff;border:1.5px solid #c8d8ff;
+  background:#fff;border:1.5px solid #111;
   display:flex;align-items:center;justify-content:center;
-  font-size:11px;font-weight:800;color:#3D6FFF;flex-shrink:0;
+  font-size:11px;font-weight:800;color:#111;flex-shrink:0;
 }
 .sb-user-name{font-size:12px;font-weight:700;color:#333;flex:1;letter-spacing:-.2px;}
 .sb-logout-btn{
@@ -589,6 +589,7 @@ tr:hover .ta{opacity:1}
       <span class="sb-lbl">운영</span>
       <div class="ni" data-p="consult"><span class="ni-ic">💬</span>상담 기록</div>
       <div class="ni" data-p="settings"><span class="ni-ic">⚙️</span>설정</div>
+      <div class="ni" data-p="admin" id="navAdmin" style="display:none"><span class="ni-ic">🛡️</span>관리자</div>
     </div>
   </nav>
 
@@ -916,6 +917,22 @@ tr:hover .ta{opacity:1}
   </div>
 </div>
 
+<!-- ═══════════════ ADMIN (원장 전용) ═══════════════ -->
+<div class="page" id="page-admin">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+    <span class="badge b-dk" style="font-size:12px">🛡️ 관리자 — 가입자 명단</span>
+    <button class="btn b-blue b-sm" onclick="renderAdmin()">↻ 새로고침</button>
+    <span id="adminCount" style="font-size:11px;color:var(--ink3)"></span>
+  </div>
+  <div class="card">
+    <div class="tw"><table>
+      <thead><tr><th>#</th><th>이메일</th><th>이름</th><th>학원</th><th>역할</th><th>가입일</th><th>최근 접속</th><th>인증</th></tr></thead>
+      <tbody id="adminTb"></tbody>
+    </table></div>
+  </div>
+  <div id="adminMsg" style="margin-top:12px;font-size:12px;color:var(--ink3)"></div>
+</div>
+
 </div><!-- con -->
 </div><!-- main -->
 
@@ -1081,6 +1098,46 @@ function renderUserBanner(){
   const thumb=document.getElementById('sbAcademyThumb'); if(thumb) thumb.textContent = '관';
   const un=document.getElementById('sbUserName'); if(un) un.textContent = teacher + '님';
   const av=document.getElementById('sbUserAvatar'); if(av) av.textContent = teacher.slice(0,1);
+  // 관리자(원장 본인) 메뉴 노출 — 가입자 명단 조회용
+  const navAdmin=document.getElementById('navAdmin');
+  if(navAdmin) navAdmin.style.display = (currentUser.email && ADMIN_EMAILS.indexOf(currentUser.email.toLowerCase())>=0) ? '' : 'none';
+}
+// 관리자 메뉴를 볼 수 있는 이메일(원장). 서버(api/admin-users)도 동일 이메일만 허용.
+const ADMIN_EMAILS = ['sooyea09@gmail.com'];
+async function renderAdmin(){
+  const tb=document.getElementById('adminTb');
+  const msg=document.getElementById('adminMsg');
+  const cnt=document.getElementById('adminCount');
+  if(tb) tb.innerHTML='<tr><td colspan="8" style="padding:16px;text-align:center;color:var(--ink3)">불러오는 중…</td></tr>';
+  if(msg) msg.textContent='';
+  if(cnt) cnt.textContent='';
+  try{
+    const {data:{session}} = await sb.auth.getSession();
+    const token = session && session.access_token;
+    if(!token){ if(tb) tb.innerHTML='<tr><td colspan="8" style="padding:16px;text-align:center;color:var(--red)">로그인이 필요합니다.</td></tr>'; return; }
+    const r = await fetch('/api/admin-users', { headers:{ 'Authorization':'Bearer '+token } });
+    const data = await r.json();
+    if(!r.ok){
+      if(tb) tb.innerHTML=`<tr><td colspan="8" style="padding:16px;text-align:center;color:var(--red)">${data.error||'불러오기 실패'}</td></tr>`;
+      if(String(data.error||'').includes('환경변수')) msg.innerHTML='💡 Vercel에 <b>SUPABASE_SERVICE_ROLE_KEY</b> 환경변수를 추가한 뒤 다시 시도하세요.';
+      return;
+    }
+    const fmt=d=>{ if(!d) return '—'; const x=new Date(d); if(isNaN(x)) return '—'; return `${x.getFullYear()}.${String(x.getMonth()+1).padStart(2,'0')}.${String(x.getDate()).padStart(2,'0')}`; };
+    const users=data.users||[];
+    if(cnt) cnt.textContent=`총 ${data.count||users.length}명`;
+    tb.innerHTML = users.length ? users.map((u,i)=>`<tr>
+      <td>${i+1}</td>
+      <td><b>${u.email||'—'}</b></td>
+      <td>${u.name||'—'}</td>
+      <td>${u.academy||'—'}</td>
+      <td>${u.role==='owner'?'<span class="badge b-B">원장</span>':'<span class="badge b-dk">선생님</span>'}</td>
+      <td style="font-family:var(--M);font-size:11px">${fmt(u.created_at)}</td>
+      <td style="font-family:var(--M);font-size:11px;color:var(--ink3)">${fmt(u.last_sign_in_at)}</td>
+      <td>${u.confirmed?'<span class="badge b-G">✅</span>':'<span class="badge b-A">대기</span>'}</td>
+    </tr>`).join('') : '<tr><td colspan="8" style="padding:16px;text-align:center;color:var(--ink3)">가입자가 없습니다.</td></tr>';
+  }catch(e){
+    if(tb) tb.innerHTML=`<tr><td colspan="8" style="padding:16px;text-align:center;color:var(--red)">오류: ${String(e.message||e)}</td></tr>`;
+  }
 }
 
 function showAuthScreen(){ document.getElementById('authScreen').classList.remove('hidden'); }
@@ -1486,14 +1543,14 @@ function openAttPop(nm,ri,el){
 function setAtt(nm,ri,v){if(DB.lessons[nm])DB.lessons[nm].rows[ri].att=v||null;save();document.getElementById('attPop').style.display='none';showLesson(nm);}
 
 /* ═══════════════ NAVIGATION ═══════════════ */
-const PT={home:'홈 대시보드',ai:'AI 조교 & 상담',students:'학생 관리',scores:'성적 카드',attendance:'출석부',lesson:'수업 진도+피드백',unified:'통합',exam:'내신 일정',todo:'수업준비 TODO',consult:'상담 기록',settings:'설정'};
+const PT={home:'홈 대시보드',ai:'AI 조교 & 상담',students:'학생 관리',scores:'성적 카드',attendance:'출석부',lesson:'수업 진도+피드백',unified:'통합',exam:'내신 일정',todo:'수업준비 TODO',consult:'상담 기록',settings:'설정',admin:'관리자'};
 function goPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   document.getElementById('page-'+id)?.classList.add('on');
   document.getElementById('pgT').textContent=PT[id]||id;
   document.querySelectorAll('.ni').forEach(n=>{if(n.dataset.p===id)n.classList.add('on');});
-  ({home:renderHome,students:renderStudents,scores:renderScores,attendance:renderAttend,lesson:renderLesson,unified:renderUnifiedInit,exam:renderExam,todo:renderTodo,consult:renderConsult,ai:renderAI,settings:renderSettings})[id]?.();
+  ({home:renderHome,students:renderStudents,scores:renderScores,attendance:renderAttend,lesson:renderLesson,unified:renderUnifiedInit,exam:renderExam,todo:renderTodo,consult:renderConsult,ai:renderAI,settings:renderSettings,admin:renderAdmin})[id]?.();
 }
 function openMod(t,b,f){document.getElementById('mT').textContent=t;document.getElementById('mB').innerHTML=b;document.getElementById('mF').innerHTML=f;document.getElementById('mbg').classList.add('on');}
 function closeMod(){document.getElementById('mbg').classList.remove('on');}
