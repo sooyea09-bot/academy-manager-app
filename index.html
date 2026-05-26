@@ -2885,7 +2885,7 @@ ${r.hw||'(없음)'}
 [오늘 성적] ${scoreLine}`;
   const sys=`당신은 '엑설런스 영어' 학원 강사 엄지T의 AI 조교입니다. 아래 수업 데이터로 학부모에게 보낼 '데일리 상담 카톡 문구'를 작성하세요.
 
-반드시 두 부분으로 나누고, 그 사이에 '===숙제===' 라고만 적힌 줄을 정확히 한 번 넣으세요. (윗부분=수업 진도 메시지, 아랫부분=숙제)
+반드시 아래 형식과 순서, 이모지를 그대로 지키고, '📌 오늘 수업 진도' 목록까지만 작성하세요. (✔️ 숙제 부분은 절대 쓰지 마세요 — 시스템이 자동으로 붙입니다.)
 
 [학생이름] 학부모님, 안녕하세요 😊 엑설런스 영어 엄지T입니다.
 
@@ -2897,23 +2897,28 @@ ${r.hw||'(없음)'}
 📌 오늘 수업 진도
 1. ...
 2. ...
-===숙제===
-✔️ 숙제
-1. ...
-2. ...
-오늘도 잘 따라와 주었습니다. 감사합니다 😊
 
 규칙:
-- '===숙제===' 줄을 반드시 한 번 넣으세요. 그 위에는 수업 진도까지만, 그 아래에는 숙제 항목만 적으세요. 숙제를 수업 진도에 절대 섞지 마세요.
-- '오늘 수업 진도'와 '숙제'는 강사가 입력한 원문 항목을 그대로 번호 매겨 정리하고, 내용을 새로 지어내지 마세요.
-- '미입력'/'없음'인 항목은 자연스럽게 생략하세요. 숙제 데이터가 없으면 '===숙제===' 아래는 '✔️ 숙제'만 적고 비워두세요.
+- '오늘 수업 진도'는 강사 입력 원문 항목을 그대로 번호 매겨 정리하고, 내용을 새로 지어내지 마세요.
+- '✔️ 숙제' 등 숙제 부분은 절대 작성하지 마세요(시스템이 추가).
+- '미입력'/'없음'인 항목은 자연스럽게 생략하세요.
 - 공손하고 따뜻한 학부모 안내 톤, 한국어.`;
   try{
     const res=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,system:sys,messages:[{role:'user',content:ctx}]})});
     const data=await res.json();
     if(!res.ok){ kkResultBox('오류: '+(data.error||'생성 실패')); return; }
-    kkShowSplit(data.content?.[0]?.text||'생성 실패');
+    const aiText=(data.content?.[0]?.text||'생성 실패').trim();
+    kkShow(aiText + '\n\n' + dailyHwBlock(r.hw));
   }catch(e){ kkResultBox('생성 실패: '+String(e.message||e)); }
+}
+// 데일리 카톡 하단 숙제 블록 — 입력된 숙제가 있으면 번호 목록, 없으면 복붙용 빈 칸
+function dailyHwBlock(hw){
+  const h=(hw||'').trim();
+  if(h && h!=='미입력' && h!=='없음' && h!=='(없음)'){
+    const lines=h.split(/\n+/).map(s=>s.replace(/^\s*\d+[.)]\s*/,'').trim()).filter(Boolean);
+    if(lines.length) return '✔️ 숙제\n'+lines.map((l,i)=>`${i+1}. ${l}`).join('\n');
+  }
+  return '✔️ 숙제\n1. \n2. \n3. ';
 }
 // 8회차 통합 피드백 상담 카톡 문구
 async function gen8Feedback(){
