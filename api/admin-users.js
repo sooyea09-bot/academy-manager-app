@@ -3,7 +3,7 @@
 // (선택) ADMIN_EMAILS = 콤마로 구분한 관리자 이메일 목록. 미설정 시 아래 기본값 사용.
 // 서비스 키는 서버에서만 사용되며 클라이언트(페이지)로 절대 전달되지 않습니다.
 const SUPABASE_URL = 'https://wpvlgcyklnknzdtpnyxv.supabase.co';
-const DEFAULT_ADMINS = 'djasid11@naver.com,sooyea09@gmail.com';
+const DEFAULT_ADMINS = 'djasid11@naver.com';
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
