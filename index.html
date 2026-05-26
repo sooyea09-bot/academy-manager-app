@@ -1497,6 +1497,7 @@ function ensureStudentRecords(){
   DB.scHigh = DB.scHigh || {};
   DB.attendance = DB.attendance || [];
   DB.lessons = DB.lessons || {};
+  DB.exams = DB.exams || [];
   let changed = false;
   DB.students.forEach(s=>{
     const nm = s && s.name; if(!nm) return;
@@ -1518,6 +1519,11 @@ function ensureStudentRecords(){
     // 3) 수업 진도 + 피드백 (빈 기록 틀 생성 → 통합에도 자동 노출)
     if(!DB.lessons[nm]){
       DB.lessons[nm] = {period:'', attend:'', summary:'', goal:'', rows:[]};
+      changed = true;
+    }
+    // 4) 내신 일정 — 시험 기록이 하나도 없으면 빈 일정(날짜 미정) 자동 추가
+    if(!DB.exams.some(e=>e.name===nm)){
+      DB.exams.push({id:nid(DB.exams), name:nm, school:s.school||'', grade:s.grade||'', exam:'미정', date:'', pub:'', range:'', variation:'❌미완료', book:'❌미완료', note:''});
       changed = true;
     }
   });
@@ -1546,7 +1552,7 @@ function importData(e) {
 /* ═══════════════ UTILS ═══════════════ */
 const toast=(m,d=1800)=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),d);};
 const dday=s=>{const a=new Date(s),b=new Date();b.setHours(0,0,0,0);a.setHours(0,0,0,0);return Math.round((a-b)/86400000);};
-const ddB=n=>n<0?`<span class="dd dd-p">D+${Math.abs(n)}</span>`:n===0?`<span class="dd dd-u">D-Day!</span>`:n<=3?`<span class="dd dd-u">D-${n}</span>`:n<=7?`<span class="dd dd-s">D-${n}</span>`:`<span class="dd dd-o">D-${n}</span>`;
+const ddB=n=>(n==null||isNaN(n))?`<span class="dd dd-o">미정</span>`:n<0?`<span class="dd dd-p">D+${Math.abs(n)}</span>`:n===0?`<span class="dd dd-u">D-Day!</span>`:n<=3?`<span class="dd dd-u">D-${n}</span>`:n<=7?`<span class="dd dd-s">D-${n}</span>`:`<span class="dd dd-o">D-${n}</span>`;
 const stB=s=>{if(!s)return'';if(s.includes('완료')||s.includes('✅'))return`<span class="badge b-G">${s}</span>`;if(s.includes('진행')||s.includes('⚠️'))return`<span class="badge b-A">${s}</span>`;if(s.includes('미완')||s.includes('미시작')||s.includes('❌'))return`<span class="badge b-R">${s}</span>`;return`<span class="badge b-dk">${s}</span>`;};
 const trkB=t=>t==='수능'?`<span class="badge b-A">${t}</span>`:t.includes('초등')?`<span class="badge b-G">${t}</span>`:`<span class="badge b-dk">${t}</span>`;
 const scV=(v,dir)=>{if(v==null||v==='')return`<span class="sv sv-N">—</span>`;const n=Number(v);let c;if(dir==='up')c=n>=80?'sv-G':n>=60?'sv-A':'sv-R';else c=n<=5?'sv-G':n<=10?'sv-A':'sv-R';return`<span class="sv ${c}">${n}</span>`;};
@@ -1587,7 +1593,7 @@ function renderHome(){
     <div class="stat"><div class="sl">긴급 TODO</div><div class="sv2" style="color:var(--red)">${urg.length}<span>건</span></div><div class="sn">★★★ 미완료</div></div>
     <div class="stat"><div class="sl">D-day 3일 이내</div><div class="sv2" style="color:var(--amber)">${DB.exams.filter(e=>{ const d=dday(e.date);return d>=0&&d<=3;}).length}<span>건</span></div></div>
     <div class="stat"><div class="sl">상담 전환율</div><div class="sv2">${conv}<span>%</span></div></div>`;
-  const sorted=[...DB.exams].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const sorted=[...DB.exams].sort((a,b)=>(a.date?new Date(a.date).getTime():Infinity)-(b.date?new Date(b.date).getTime():Infinity));
   document.getElementById('hDday').innerHTML=sorted.map(e=>`<tr><td><b>${e.name}</b></td><td>${e.school}</td><td>${e.exam}</td><td>${ddB(dday(e.date))}</td><td onclick="cycleEx(${e.id},'variation')" style="cursor:pointer" title="클릭: 완료/미완료 변경">${stB(e.variation)}</td><td onclick="cycleEx(${e.id},'book')" style="cursor:pointer" title="클릭: 완료/미완료 변경">${stB(e.book)}</td></tr>`).join('');
   document.getElementById('hTodo').innerHTML=urg.map(t=>`
     <div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--bd)">
@@ -2671,7 +2677,8 @@ function renderUnified(nm){
 
 /* ═══════════════ EXAM ═══════════════ */
 function renderExam(){
-  const sorted=[...DB.exams].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  ensureStudentRecords();
+  const sorted=[...DB.exams].sort((a,b)=>(a.date?new Date(a.date).getTime():Infinity)-(b.date?new Date(b.date).getTime():Infinity));
   document.getElementById('examTb').innerHTML=sorted.map(e=>`<tr onclick="openExamDetail(${e.id})" style="cursor:pointer" title="클릭: 상세 보기">
     <td><b>${e.name}</b></td><td>${e.school}</td><td>${e.grade}</td><td>${e.exam}</td>
     <td style="font-family:var(--M);font-size:11px">${e.date}</td><td>${ddB(dday(e.date))}</td>
@@ -2987,7 +2994,7 @@ async function sendAI(isReport=false,reportNm='',reportType=''){
   
   const allSc={...DB.scMid,...DB.scHigh};
   const urg=DB.todos.filter(t=>t.priority==='★★★'&&t.status!=='완료');
-  const ex=[...DB.exams].sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5);
+  const ex=[...DB.exams].filter(e=>e.date).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5);
   const targetNm=reportNm||(()=>{for(const s of DB.students){if(q.includes(s.name))return s.name;}return null;})();
   
   let studentCtx='';
