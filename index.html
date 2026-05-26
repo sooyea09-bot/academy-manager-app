@@ -7,11 +7,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#FDFCF8; --bg2:#F5F3EE; --bg3:#EDEAE2;
-  --sur:rgba(255,255,255,.88); --sur-s:#FFFFFF;
-  --bd:rgba(220,216,204,.65); --bd2:#C8C4B8;
-  --ink:#0D0D0B; --ink2:#2E2C28; --ink3:#6B6760; --ink4:#AEAAA2;
-  --sb:#F5F3EE; --sb2:#EDEAE2; --sb-bd:rgba(100,95,85,.12); --sb-acc:rgba(61,111,255,.1);
+  --bg:#ffffff; --bg2:#f6f6f6; --bg3:#efefef;
+  --sur:#ffffff; --sur-s:#FFFFFF;
+  --bd:#ececec; --bd2:#dcdcdc;
+  --ink:#111111; --ink2:#2b2b2b; --ink3:#6a6a6a; --ink4:#a9a9a9;
+  --sb:#ffffff; --sb2:#f6f6f6; --sb-bd:rgba(0,0,0,.08); --sb-acc:rgba(61,111,255,.1);
   --blue:#3D6FFF; --blue2:#2A54D4; --blue3:#EEF3FF; --blue4:#C8D8FF;
   --red:#E03E3E; --red2:#B82E2E; --red3:#FDEAEA;
   --green:#1A6B3C; --green2:#2A9A58; --green3:#E8F8EF;
@@ -30,7 +30,7 @@ button,input,select,textarea{font-family:var(--F)}
 
 /* Layout */
 .shell{display:flex;min-height:100vh}
-.main{margin-left:var(--sbw);flex:1;display:flex;flex-direction:column;background:#f5f6f8;min-height:100vh;}
+.main{margin-left:var(--sbw);flex:1;display:flex;flex-direction:column;background:#fff;min-height:100vh;}
 .topbar{height:60px;background:#fff;border-bottom:1.5px solid #f0f0f0;display:flex;align-items:center;padding:0 24px;gap:12px;position:sticky;top:0;z-index:200;box-shadow:0 1px 0 #f0f0f0;}
 .con{padding:22px 24px;flex:1;}
 
@@ -146,6 +146,10 @@ tr:hover .ta{opacity:1}
 .sc-tab:last-child{border-right:none}
 .sc-tab.on-mid{background:var(--mid);color:#fff}
 .sc-tab.on-high{background:var(--high);color:#fff}
+.sc-name-btn{display:inline-flex;align-items:center;background:#fff;border:1.5px solid #e3e3e3;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;color:#333;cursor:pointer;transition:all .14s;font-family:inherit}
+.sc-name-btn:hover{border-color:#111;color:#111}
+.sc-name-btn.on{background:#111;color:#fff;border-color:#111}
+.sc-name-btn.on .badge{background:rgba(255,255,255,.22);color:#fff}
 
 /* Lesson grid */
 .lg{display:grid;grid-template-columns:46px 84px 1fr 1fr 54px 52px 52px 64px 64px 110px}
@@ -352,10 +356,10 @@ tr:hover .ta{opacity:1}
   flex-shrink:0;
 }
 .sb-top-logo-icon{
-  width:32px;height:32px;border-radius:8px;
-  background:#3D6FFF;
+  width:36px;height:36px;border-radius:8px;
+  background:#fff;border:1.5px solid #111;
   display:flex;align-items:center;justify-content:center;
-  color:#fff;font-size:14px;font-weight:900;flex-shrink:0;
+  color:#111;font-size:17px;font-weight:900;flex-shrink:0;
   font-family:'Noto Sans KR',sans-serif;
   letter-spacing:-.5px;
 }
@@ -456,20 +460,20 @@ tr:hover .ta{opacity:1}
 <!-- ═══ Supabase 연동 ═══ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  #authScreen{position:fixed;inset:0;background:linear-gradient(135deg,#1a6b3c 0%,#0d4a26 100%);
+  #authScreen{position:fixed;inset:0;background:#ffffff;
     display:flex;align-items:center;justify-content:center;z-index:99999;font-family:'Noto Sans KR',sans-serif}
   #authScreen.hidden{display:none}
   .auth-card{background:#fff;border-radius:16px;padding:36px 40px;width:380px;
-    box-shadow:0 20px 60px rgba(0,0,0,.3)}
-  .auth-card h1{font-size:24px;font-weight:900;color:#1a6b3c;margin-bottom:6px;text-align:center}
-  .auth-card .sub{font-size:13px;color:#666;text-align:center;margin-bottom:24px}
-  .auth-card label{display:block;font-size:12px;font-weight:700;color:#444;margin:14px 0 6px}
+    border:1.5px solid #e6e6e6;box-shadow:0 8px 30px rgba(0,0,0,.10)}
+  .auth-card h1{font-size:24px;font-weight:900;color:#111;margin-bottom:6px;text-align:center}
+  .auth-card .sub{font-size:13px;color:#444;text-align:center;margin-bottom:24px}
+  .auth-card label{display:block;font-size:12px;font-weight:700;color:#222;margin:14px 0 6px}
   .auth-card input,.auth-card select{width:100%;padding:11px 14px;border:1.5px solid #d8d8d8;
-    border-radius:8px;font-size:14px;box-sizing:border-box;font-family:inherit}
-  .auth-card input:focus,.auth-card select:focus{outline:none;border-color:#1a6b3c}
-  .auth-btn{width:100%;background:#1a6b3c;color:#fff;border:none;padding:13px;border-radius:8px;
+    border-radius:8px;font-size:14px;box-sizing:border-box;font-family:inherit;color:#111}
+  .auth-card input:focus,.auth-card select:focus{outline:none;border-color:#111}
+  .auth-btn{width:100%;background:#111;color:#fff;border:none;padding:13px;border-radius:8px;
     font-size:15px;font-weight:800;cursor:pointer;margin-top:18px;font-family:inherit}
-  .auth-btn:hover{background:#0d4a26}
+  .auth-btn:hover{background:#000}
   .auth-btn:disabled{opacity:.5;cursor:not-allowed}
   .auth-switch{text-align:center;font-size:12px;color:#666;margin-top:16px}
   .auth-err{background:#fde8e8;color:#a52424;padding:10px 14px;border-radius:6px;
@@ -477,8 +481,8 @@ tr:hover .ta{opacity:1}
   .auth-mode-tabs{display:flex;background:#f1f3f0;border-radius:8px;padding:3px;margin-bottom:8px}
   .auth-mode-tabs button{flex:1;background:transparent;border:none;padding:8px;
     border-radius:6px;font-size:13px;font-weight:700;color:#666;cursor:pointer;font-family:inherit}
-  .auth-mode-tabs button.on{background:#fff;color:#1a6b3c;box-shadow:0 2px 6px rgba(0,0,0,.06)}
-  .user-banner{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#1a6b3c;color:#fff;
+  .auth-mode-tabs button.on{background:#fff;color:#111;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+  .user-banner{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#111;color:#fff;
     border-radius:10px;font-size:12px;margin:10px 12px}
   .user-banner b{font-weight:800}
   .user-banner .role-badge{background:rgba(255,255,255,.2);padding:2px 8px;border-radius:4px;font-size:10px}
@@ -486,7 +490,7 @@ tr:hover .ta{opacity:1}
 </head>
 <body>
 <!-- ═══ 로그인/회원가입 화면 ═══ -->
-<div id="authScreen">
+<div id="authScreen" class="hidden">
   <div class="auth-card">
     <h1>🎓 관리 선생</h1>
     <div class="sub">학원 영어 강사용 통합 관리 시스템</div>
@@ -547,7 +551,6 @@ tr:hover .ta{opacity:1}
   <!-- 앱 로고 -->
   <div class="sb-top-logo">
     <div class="sb-top-logo-icon">관</div>
-    <span class="sb-top-logo-txt">관리 선생</span>
   </div>
 
   <!-- 학원 박스 -->
@@ -700,34 +703,15 @@ tr:hover .ta{opacity:1}
 
 <!-- ═══════════════ SCORES ═══════════════ -->
 <div class="page" id="page-scores">
-  <div style="display:flex;align-items:center;gap:14px;margin-bottom:0;flex-wrap:wrap">
-    <div class="sc-tabs">
-      <div class="sc-tab on-mid" id="scTabMid" onclick="switchScTab('mid')">📚 초중 성적카드</div>
-      <div class="sc-tab" id="scTabHigh" onclick="switchScTab('high')">📚 고등 성적카드</div>
-    </div>
-    <select class="fsel" style="width:200px" id="scSel" onchange="renderScoreCard()"></select>
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap">
+    <span class="badge b-dk" style="font-size:12px">📚 성적카드 (초중·고등 통합)</span>
     <button class="btn b-blue b-sm" onclick="openScoreModal()">+ 성적 입력</button>
-    <span style="font-size:11px;color:var(--ink3)">셀 더블클릭 → 수정</span>
+    <span style="font-size:11px;color:var(--ink3)">학생 이름 클릭 → 그래프 보기 · 셀 더블클릭 → 점수 수정</span>
   </div>
-  <div id="scMidArea">
-    <div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px">
-      <span class="badge b-mid">초중 성적카드</span>
-      <span style="font-size:11px;color:var(--ink3)">항목: 단어(틀린수) · 백지(틀린수) · 단원(점수) · 복습(점수)</span>
-    </div>
-    <div class="g2">
-      <div class="card"><div class="ch"><span>📊</span><h3>8회차 성적 추이</h3><span class="sub" id="scSub"></span></div><div class="tw"><table><thead><tr id="scHd"></tr></thead><tbody id="scTb"></tbody></table></div></div>
-      <div class="card"><div class="ch"><span>📈</span><h3>성적 차트</h3></div><div class="cb"><canvas id="scCvs" height="160"></canvas></div></div>
-    </div>
-  </div>
-  <div id="scHighArea" style="display:none">
-    <div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px">
-      <span class="badge b-high">고등 성적카드</span>
-      <span style="font-size:11px;color:var(--ink3)">항목: 단어(틀린수) · 백지(틀린수) · 모의(총점) · 미니(틀린수)</span>
-    </div>
-    <div class="g2">
-      <div class="card"><div class="ch"><span>📊</span><h3>8회차 성적 추이</h3><span class="sub" id="scSubH"></span></div><div class="tw"><table><thead><tr id="scHdH"></tr></thead><tbody id="scTbH"></tbody></table></div></div>
-      <div class="card"><div class="ch"><span>📈</span><h3>성적 차트</h3></div><div class="cb"><canvas id="scCvsH" height="160"></canvas></div></div>
-    </div>
+  <div id="scNameList" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px"></div>
+  <div class="g2">
+    <div class="card"><div class="ch"><span>📊</span><h3>8회차 성적 추이</h3><span class="sub" id="scSub"></span></div><div class="tw"><table><thead><tr id="scHd"></tr></thead><tbody id="scTb"></tbody></table></div></div>
+    <div class="card"><div class="ch"><span>📈</span><h3>성적 차트</h3><span class="sub" id="scChartName"></span></div><div class="cb"><canvas id="scCvs" height="180"></canvas></div></div>
   </div>
 </div>
 
@@ -1082,6 +1066,7 @@ async function loadUserProfile(){
   document.getElementById('authScreen').classList.add('hidden');
   renderUserBanner();
   await loadAllFromCloud();
+  if(typeof ensureStudentRecords === 'function') ensureStudentRecords();
   if(typeof goPage === 'function') goPage('home');
 }
 
@@ -1195,6 +1180,11 @@ async function cloudGetTeachers(){
 function getInviteCode(){ return currentUser?.invite_code || ''; }
 
 window.addEventListener('DOMContentLoaded', async ()=>{
+  // 로컬에 세션 토큰이 없으면 즉시 로그인 화면을 띄워 앱이 잠깐이라도 노출되는 것을 방지
+  // (토큰이 있으면 자동 로그인이므로 로그인 화면 깜빡임 없음)
+  let hasToken=false;
+  try{ for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf('sb-')===0&&k.indexOf('auth-token')>=0){hasToken=true;break;}} }catch(e){}
+  if(!hasToken) showAuthScreen();
   const {data:{session}} = await sb.auth.getSession();
   if(session) await loadUserProfile();
   else showAuthScreen();
@@ -1419,6 +1409,49 @@ function save() {
   }
 }
 
+// ── 학생 관리 리스트 → 성적카드/출석부/수업진도/통합 자동 추가 ──
+// 학생 리스트에 있는 모든 학생이 각 영역에 자동으로 등록되도록 보장한다.
+// (기존 데이터는 절대 지우지 않고, 빠진 학생만 새로 추가)
+function ensureStudentRecords(){
+  if(!DB || !Array.isArray(DB.students)) return false;
+  DB.scMid = DB.scMid || {};
+  DB.scHigh = DB.scHigh || {};
+  DB.attendance = DB.attendance || [];
+  DB.lessons = DB.lessons || {};
+  let changed = false;
+  DB.students.forEach(s=>{
+    const nm = s && s.name; if(!nm) return;
+    const isHigh = s.stype === 'high';
+    const db = isHigh ? DB.scHigh : DB.scMid;
+    // 1) 성적카드
+    if(!db[nm]){
+      const fields = (typeof getCfgFields==='function') ? getCfgFields(isHigh?'high':'mid') : [];
+      const rows = (fields.length?fields:[{label:'단어',dir:'down'},{label:'백지',dir:'down'},{label:isHigh?'모의':'단원',dir:'up'},{label:isHigh?'미니':'복습',dir:isHigh?'down':'up'}])
+        .map(f=>({label:f.label, dir:f.dir, vals:[null,null,null,null,null,null,null,null]}));
+      db[nm] = {rows};
+      changed = true;
+    }
+    // 2) 출석부
+    if(!DB.attendance.some(a=>a.name===nm)){
+      DB.attendance.push({id:nid(DB.attendance), name:nm, school:s.school||'', grade:s.grade||'', s:['','','','','','','','']});
+      changed = true;
+    }
+    // 3) 수업 진도 + 피드백 (빈 기록 틀 생성 → 통합에도 자동 노출)
+    if(!DB.lessons[nm]){
+      DB.lessons[nm] = {period:'', attend:'', summary:'', goal:'', rows:[]};
+      changed = true;
+    }
+  });
+  if(changed){
+    // 토스트 없이 조용히 저장 (렌더 중 호출되므로)
+    try{ const key = window._userKey || SK; localStorage.setItem(key, JSON.stringify(DB)); }catch(e){}
+    if(typeof sb!=='undefined' && typeof currentUser!=='undefined' && currentUser){
+      try{ sb.from('user_data').upsert({user_id:currentUser.id, data:DB, updated_at:new Date().toISOString()},{onConflict:'user_id'}); }catch(e){}
+    }
+  }
+  return changed;
+}
+
 function exportData() {
   const b=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
   const u=URL.createObjectURL(b);const a=document.createElement('a');
@@ -1467,6 +1500,7 @@ function closeMod(){document.getElementById('mbg').classList.remove('on');}
 
 /* ═══════════════ HOME ═══════════════ */
 function renderHome(){
+  ensureStudentRecords();
   const urg=DB.todos.filter(t=>t.priority==='★★★'&&t.status!=='완료');
   const conv=DB.consults.length?(DB.consults.filter(c=>c.status.includes('✅')).length/DB.consults.length*100).toFixed(0):0;
   document.getElementById('hStats').innerHTML=`
@@ -1479,8 +1513,9 @@ function renderHome(){
   document.getElementById('hTodo').innerHTML=urg.slice(0,6).map(t=>`
     <div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--bd)">
       <div style="width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0"></div>
-      <div style="flex:1"><div style="font-size:12px;font-weight:600">${t.text}</div><div style="font-size:10px;color:var(--ink3)">${t.target}</div></div>
+      <div style="flex:1;cursor:pointer" onclick="openTodoMemo(${t.id})" title="클릭하면 메모 내용을 봅니다"><div style="font-size:12px;font-weight:600">${t.text}</div><div style="font-size:10px;color:var(--ink3)">${t.target}</div></div>
       ${ddB(dday(t.due))}
+      <span onclick="event.stopPropagation();cycleTodo(${t.id})" class="badge ${t.status==='완료'?'b-G':t.status==='진행중'?'b-A':'b-dk'}" style="cursor:pointer" title="클릭: 완료/미완료 변경">${t.status}</span>
     </div>`).join('')||'<div style="padding:16px;text-align:center;color:var(--ink3);font-size:12px">긴급 항목 없음 ✅</div>';
   const allSc={...DB.scMid,...DB.scHigh};
   document.getElementById('hScores').innerHTML=Object.entries(allSc).map(([nm,sd])=>{
@@ -1493,7 +1528,7 @@ function renderHome(){
     const l0=fields[0]?.label||r[0]?.label||'단어';const l2=fields[2]?.label||r[2]?.label||'단원/모의';const l3=fields[3]?.label||r[3]?.label||'복습';
     return`<tr><td><b>${nm}</b></td><td><span class="badge ${isMid?'b-mid':'b-high'}">${isMid?'초중':'고등'}</span></td><td>${scV(last[0],fields[0]?.dir||'down')}</td><td>${scV(last[1],fields[1]?.dir||'down')}</td><td>${scV(last[2],fields[2]?.dir||'up')}</td><td>${scV(last[3],fields[3]?.dir||'up')}</td><td>${t}</td></tr>`;
   }).join('');
-  document.getElementById('hConsult').innerHTML=DB.consults.slice(0,5).map(c=>`<tr><td><b>${c.name}</b></td><td>${c.school}</td><td><span class="badge b-dk">${c.route}</span></td><td>${c.level}</td><td>${stB(c.status)}</td></tr>`).join('');
+  document.getElementById('hConsult').innerHTML=DB.consults.slice(0,5).map(c=>`<tr><td onclick="openConsultDetail(${c.id})" style="cursor:pointer" title="클릭: 상세 보기"><b>${c.name}</b></td><td>${c.school}</td><td><span class="badge b-dk">${c.route}</span></td><td>${c.level}</td><td onclick="cycleConsultStatus(${c.id})" style="cursor:pointer" title="클릭: 등록/미등록 변경">${stB(c.status)}</td></tr>`).join('');
 }
 
 /* ═══════════════ STUDENTS ═══════════════ */
@@ -1540,45 +1575,57 @@ function saveStu(id){
   const o={name:gv('sn'),school:gv('ssc'),grade:gv('sg'),track:gv('str'),stype:gv('sstype'),book:gv('sbk'),parent:gv('spar'),student:gv('sstu'),day1:d1,t1:gv('st1'),day2:d2,t2:gv('st2'),memo:gv('sm')};
   if(id){Object.assign(DB.students.find(s=>s.id===id),o);}
   else{DB.students.push({id:nid(DB.students),no:DB.students.length+1,...o});}
+  ensureStudentRecords();
   save();closeMod();renderStudents();
 }
 function delStu(id){if(!confirm('삭제할까요?'))return;DB.students=DB.students.filter(s=>s.id!==id);save();renderStudents();}
 
 /* ═══════════════ SCORES ═══════════════ */
 let curScTab='mid';
-function switchScTab(tab){
-  curScTab=tab;
-  document.getElementById('scTabMid').className='sc-tab'+(tab==='mid'?' on-mid':'');
-  document.getElementById('scTabHigh').className='sc-tab'+(tab==='high'?' on-high':'');
-  document.getElementById('scMidArea').style.display=tab==='mid'?'':'none';
-  document.getElementById('scHighArea').style.display=tab==='high'?'':'none';
-  buildScSel(tab);
+let curScName='';
+// 성적카드: 학생 리스트 + 성적데이터가 있는 학생을 모두 합친 통합 명단 (초중·고등 한 곳에)
+function scAllStudents(){
+  // 학생 관리 리스트 기준 (초중·고등 통합). 리스트가 비었을 때만 성적데이터로 폴백.
+  const out=[];
+  (DB.students||[]).forEach(s=>{ if(s&&s.name&&!out.find(x=>x.name===s.name)) out.push({name:s.name,type:s.stype==='high'?'high':'mid',grade:s.grade||'',school:s.school||''}); });
+  if(!out.length){
+    Object.keys(DB.scMid||{}).forEach(n=>{ if(!out.find(x=>x.name===n)) out.push({name:n,type:'mid',grade:'',school:''}); });
+    Object.keys(DB.scHigh||{}).forEach(n=>{ if(!out.find(x=>x.name===n)) out.push({name:n,type:'high',grade:'',school:''}); });
+  }
+  return out;
 }
-function buildScSel(tab){
-  const sel=document.getElementById('scSel');if(!sel)return;
-  const db=tab==='mid'?DB.scMid:DB.scHigh;const cur=sel.value;
-  sel.innerHTML=Object.keys(db).map(n=>`<option ${n===cur?'selected':''}>${n}</option>`).join('');
-  if(!sel.value&&Object.keys(db).length)sel.value=Object.keys(db)[0];
+function scTypeOf(nm){ const f=scAllStudents().find(x=>x.name===nm); return f?f.type:'mid'; }
+// (호환용) 옛 탭 함수 — UI엔 없지만 외부 호출 대비 유지
+function switchScTab(tab){ curScTab=tab; renderScores(); }
+function buildScSel(){ renderScores(); }
+function renderScores(){
+  ensureStudentRecords();
+  const list=scAllStudents();
+  const nl=document.getElementById('scNameList');
+  if(!list.length){ if(nl)nl.innerHTML='<span style="font-size:12px;color:var(--ink3)">학생이 없습니다. 학생 관리에서 먼저 추가하세요.</span>'; return; }
+  if(!curScName||!list.find(x=>x.name===curScName)) curScName=list[0].name;
+  if(nl) nl.innerHTML=list.map(s=>`<button class="sc-name-btn${s.name===curScName?' on':''}" onclick="selScName('${s.name}')">${s.name}<span class="badge ${s.type==='high'?'b-high':'b-mid'}" style="margin-left:6px;font-size:9px">${s.type==='high'?'고등':'초중'}</span></button>`).join('');
   renderScoreCard();
 }
-function renderScores(){switchScTab(curScTab);}
+function selScName(nm){ curScName=nm; renderScores(); }
 function renderScoreCard(){
-  const tab=curScTab;const db=tab==='mid'?DB.scMid:DB.scHigh;
-  const nm=document.getElementById('scSel')?.value;if(!nm||!db[nm])return;
-  const sd=db[nm];const st=DB.students.find(s=>s.name===nm);
-  const subId=tab==='mid'?'scSub':'scSubH';const hdId=tab==='mid'?'scHd':'scHdH';const tbId=tab==='mid'?'scTb':'scTbH';const cvId=tab==='mid'?'scCvs':'scCvsH';
-  document.getElementById(subId).textContent=st?`${st.grade} · ${st.school}`:'';
-  // cfg 필드 라벨 적용
+  const nm=curScName; if(!nm) return;
+  const tab=scTypeOf(nm); curScTab=tab;
+  const db=tab==='high'?DB.scHigh:DB.scMid;
+  if(!db[nm]){ const fields=getCfgFields(tab); db[nm]={rows:fields.map(f=>({label:f.label,dir:f.dir,vals:[null,null,null,null,null,null,null,null]}))}; }
+  const sd=db[nm];const st=DB.students.find(s=>s.name===nm);const info=scAllStudents().find(x=>x.name===nm);
+  const subEl=document.getElementById('scSub'); if(subEl) subEl.textContent=st?`${st.grade} · ${st.school}`:(info&&info.grade?`${info.grade} · ${info.school}`:'');
+  const cnEl=document.getElementById('scChartName'); if(cnEl) cnEl.textContent=`${nm} (${tab==='high'?'고등':'초중'})`;
   const cfgFields=getCfgFields(tab);
   sd.rows.forEach((r,ri)=>{if(cfgFields[ri]){r.label=cfgFields[ri].label;r.dir=cfgFields[ri].dir;}});
-  document.getElementById(hdId).innerHTML=`<th>항목</th>${[1,2,3,4,5,6,7,8].map(i=>`<th>${i}회</th>`).join('')}<th>평균</th><th>추세</th>`;
-  document.getElementById(tbId).innerHTML=sd.rows.map((r,ri)=>{
+  document.getElementById('scHd').innerHTML=`<th>항목</th>${[1,2,3,4,5,6,7,8].map(i=>`<th>${i}회</th>`).join('')}<th>평균</th><th>추세</th>`;
+  document.getElementById('scTb').innerHTML=sd.rows.map((r,ri)=>{
     const vs=r.vals.filter(v=>v!=null);const avg=vs.length?(vs.reduce((a,b)=>a+b,0)/vs.length).toFixed(1):'—';
     const fv=vs[0],lv=vs[vs.length-1];
     const tr=fv==null||lv==null?'—':r.dir==='up'?(lv>fv?'📈 향상':lv<fv?'📉 하락':'➡️ 유지'):(lv<fv?'📈 향상':lv>fv?'📉 하락':'➡️ 유지');
     return`<tr><td><b>${r.label}</b></td>${r.vals.map((v,ci)=>`<td class="sv" ondblclick="editScCell('${nm}','${tab}',${ri},${ci},this)" style="cursor:pointer" title="더블클릭으로 수정">${scV(v,r.dir)}</td>`).join('')}<td class="sv sv-N" style="font-size:11px">${avg}</td><td style="font-size:11px">${tr}</td></tr>`;
   }).join('');
-  drawChart(nm,tab,cvId);
+  drawChart(nm,tab,'scCvs');
 }
 function editScCell(nm,tab,ri,ci,el){
   const db=tab==='mid'?DB.scMid:DB.scHigh;const cur=db[nm].rows[ri].vals[ci];
@@ -1598,23 +1645,31 @@ function syncLessonScore(nm,tab,ri,ci){
   save();
 }
 function openScoreModal(){
-  const isMid=curScTab==='mid';
+  const list=scAllStudents();
   openMod('성적 입력',`<div class="fg">
-    <div class="ff"><div class="fl">학생 *</div><select class="fsel" id="fsn">${DB.students.filter(s=>s.stype===curScTab).map(s=>`<option>${s.name}</option>`).join('')||DB.students.map(s=>`<option>${s.name}</option>`).join('')}</select></div>
-    <div class="ff"><div class="fl">유형</div><div style="padding:8px;background:var(--bg2);border-radius:var(--r);font-size:12px;color:${isMid?'var(--mid)':'var(--high)'};font-weight:700">${isMid?'📚 초중 (단원/복습)':'📚 고등 (모의/미니)'}</div></div>
+    <div class="ff fs2"><div class="fl">학생 *</div><select class="fsel" id="fsn">${list.map(s=>`<option ${s.name===curScName?'selected':''}>${s.name} (${s.type==='high'?'고등':'초중'})</option>`).join('')}</select></div>
   </div>
-  <p style="font-size:11px;color:var(--ink3);margin-bottom:10px">1~8회차 점수 입력 (빈칸=미입력)</p>
+  <p style="font-size:11px;color:var(--ink3);margin:6px 0 10px">1~8회차 점수 입력 (빈칸=미입력) · 윗줄=단어(틀린수), 아랫줄=단원/모의(점수)</p>
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
-    ${[1,2,3,4,5,6,7,8].map(i=>`<div><div class="fl">${i}회 단어↓</div><input class="fi" id="fw${i}" type="number" placeholder="틀린수"><div class="fl" style="margin-top:6px">${isMid?'단원↑':'모의↑'}</div><input class="fi" id="fd${i}" type="number" placeholder="점수"></div>`).join('')}
+    ${[1,2,3,4,5,6,7,8].map(i=>`<div><div class="fl">${i}회 단어↓</div><input class="fi" id="fw${i}" type="number" placeholder="틀린수"><div class="fl" style="margin-top:6px">${i}회 점수↑</div><input class="fi" id="fd${i}" type="number" placeholder="점수"></div>`).join('')}
   </div>`,`<button class="btn b-ghost" onclick="closeMod()">취소</button><button class="btn b-blue" onclick="saveScoreModal()">저장</button>`);
 }
 function saveScoreModal(){
-  const nm=gv('fsn');const isMid=curScTab==='mid';const db=isMid?DB.scMid:DB.scHigh;
+  let nm=gv('fsn'); if(!nm){toast('학생을 선택하세요');return;}
+  nm=nm.replace(/\s*\((고등|초중)\)\s*$/,'').trim();
+  const st=DB.students.find(s=>s.name===nm);
+  const isHigh = st ? st.stype==='high' : !!(DB.scHigh&&DB.scHigh[nm]);
+  const db=isHigh?DB.scHigh:DB.scMid;
   const wv=[1,2,3,4,5,6,7,8].map(i=>{const v=document.getElementById('fw'+i)?.value;return v===''?null:v?Number(v):null;});
   const dv=[1,2,3,4,5,6,7,8].map(i=>{const v=document.getElementById('fd'+i)?.value;return v===''?null:v?Number(v):null;});
-  if(!db[nm])db[nm]={rows:[{label:'단어(틀린수)',dir:'down',vals:wv},{label:'백지(틀린수)',dir:'down',vals:Array(8).fill(null)},{label:isMid?'단원(점수)':'모의(총점)',dir:'up',vals:dv},{label:isMid?'복습(점수)':'미니(틀린수)',dir:isMid?'up':'down',vals:Array(8).fill(null)}]};
-  else{db[nm].rows[0].vals=wv;db[nm].rows[2].vals=dv;}
-  save();closeMod();renderScoreCard();
+  if(!db[nm]){
+    const fields=getCfgFields(isHigh?'high':'mid');
+    db[nm]={rows:fields.map((f,i)=>({label:f.label,dir:f.dir,vals:i===0?wv:(i===2?dv:[null,null,null,null,null,null,null,null])}))};
+  } else {
+    if(db[nm].rows[0]) db[nm].rows[0].vals=wv;
+    if(db[nm].rows[2]) db[nm].rows[2].vals=dv;
+  }
+  curScName=nm; save(); closeMod(); renderScores();
 }
 function drawChart(nm,tab,canvasId,extCtx,W0,H0){
   const db=(tab||curScTab)==='mid'?DB.scMid:DB.scHigh;const sd=db[nm];if(!sd)return;
@@ -1650,6 +1705,7 @@ function getAttDates(nm){
   return dates;
 }
 function renderAttend(){
+  ensureStudentRecords();
   // 전체 학생 중 수업진도가 있는 학생의 날짜를 헤더에 통합 표시
   // 헤더: 각 회차의 최대 날짜 모음 (대표날짜: 첫 번째 학생 기준으로 하거나 빈 칸)
   const allDates = Array(8).fill('');
@@ -1709,6 +1765,7 @@ function syncAttendance(nm,date){
 
 /* ═══════════════ LESSON ═══════════════ */
 function renderLesson(){
+  ensureStudentRecords();
   const sel=document.getElementById('lesSel');if(!sel)return;
   const all=DB.students.map(s=>s.name);const cur=sel.value;
   sel.innerHTML=all.map(n=>`<option ${n===cur?'selected':''}>${n}</option>`).join('');
@@ -2407,6 +2464,7 @@ function copyConsult(){
 }
 
 function renderUnifiedInit(){
+  ensureStudentRecords();
   const sel=document.getElementById('uniSel');if(!sel)return;
   const all=DB.students.map(s=>s.name);const cur=sel.value;
   sel.innerHTML=all.map(n=>`<option ${n===cur?'selected':''}>${n}</option>`).join('');
@@ -2525,7 +2583,27 @@ function renderTodo(){
       <div class="ta" style="opacity:1"><button class="btn b-ghost b-xs" onclick="editTodo(${t.id})">수정</button><button class="btn b-red b-xs" onclick="delTodo(${t.id})">삭제</button></div>
     </div>`).join('')||'<div style="padding:20px;text-align:center;color:var(--ink3)">항목 없음</div>';
 }
-function cycleTodo(id){const t=DB.todos.find(x=>x.id===id);const c=['미시작','진행중','완료'];t.status=c[(c.indexOf(t.status)+1)%c.length];save();renderTodo();toast(`→ ${t.status}`);}
+function cycleTodo(id){const t=DB.todos.find(x=>x.id===id);const c=['미시작','진행중','완료'];t.status=c[(c.indexOf(t.status)+1)%c.length];save();renderTodo();if(document.getElementById('page-home')?.classList.contains('on'))renderHome();toast(`→ ${t.status}`);}
+function openTodoMemo(id){
+  const t=DB.todos.find(x=>x.id===id);if(!t)return;
+  const ddTxt=t.due?`${t.due} (${(d=>d<0?'D+'+Math.abs(d):d===0?'D-Day':'D-'+d)(dday(t.due))})`:'—';
+  const body=`<div style="font-size:13px;line-height:1.9">
+    <div style="font-size:16px;font-weight:800;margin-bottom:12px">${t.text}</div>
+    <div style="display:grid;grid-template-columns:90px 1fr;gap:6px 10px">
+      <div style="color:var(--ink3);font-weight:700">대상 학생</div><div>${t.target||'—'}</div>
+      <div style="color:var(--ink3);font-weight:700">자료 유형</div><div>${t.type||'—'}</div>
+      <div style="color:var(--ink3);font-weight:700">마감일</div><div>${ddTxt}</div>
+      <div style="color:var(--ink3);font-weight:700">예상 시간</div><div>${t.est||'—'}</div>
+      <div style="color:var(--ink3);font-weight:700">우선순위</div><div>${t.priority||'—'}</div>
+      <div style="color:var(--ink3);font-weight:700">상태</div><div>${t.status||'—'}</div>
+    </div>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--bd)">
+      <div style="color:var(--ink3);font-weight:700;margin-bottom:6px">📝 메모 내용</div>
+      <div style="white-space:pre-wrap;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:14px;min-height:80px">${t.note||'(메모 내용이 없습니다)'}</div>
+    </div>
+  </div>`;
+  openMod('수업 준비 메모',body,`<button class="btn b-ghost" onclick="cycleTodo(${t.id});closeMod()">상태 변경</button><button class="btn b-blue" onclick="editTodo(${t.id})">수정</button><button class="btn b-ink" onclick="closeMod()">닫기</button>`);
+}
 const tfF=(t={})=>`<div class="fg">
   <div class="ff fs2"><div class="fl">할 일 *</div><input class="fi" id="ttx" value="${t.text||''}"></div>
   <div class="ff"><div class="fl">대상 학생</div><input class="fi" id="ttg" value="${t.target||''}"></div>
@@ -2546,16 +2624,45 @@ function delTodo(id){if(!confirm('삭제?'))return;DB.todos=DB.todos.filter(t=>t
 function renderConsult(){
   const reg=DB.consults.filter(c=>c.status.includes('✅')).length;const unreg=DB.consults.filter(c=>c.status.includes('❌')).length;const rev=DB.consults.filter(c=>c.status.includes('🔄')).length;const conv=DB.consults.length?(reg/DB.consults.length*100).toFixed(0):0;
   document.getElementById('conStats').innerHTML=`<div class="stat"><div class="sl">총 상담</div><div class="sv2">${DB.consults.length}</div></div><div class="stat"><div class="sl">등록 완료</div><div class="sv2" style="color:var(--green)">${reg}</div></div><div class="stat"><div class="sl">미등록</div><div class="sv2" style="color:var(--red)">${unreg}</div></div><div class="stat"><div class="sl">전환율</div><div class="sv2">${conv}<span>%</span></div></div>`;
-  document.getElementById('conTb').innerHTML=DB.consults.map(c=>`<tr>
+  document.getElementById('conTb').innerHTML=DB.consults.map(c=>`<tr onclick="openConsultDetail(${c.id})" style="cursor:pointer" title="클릭: 상세 메모 보기">
     <td style="font-family:var(--M);font-size:11px">${c.date}</td>
     <td><b>${c.name}</b></td><td>${c.grade}</td><td>${c.school}</td>
     <td><span class="badge b-dk">${c.route}</span></td>
     <td style="color:var(--ink3)">${c.level||'—'}</td>
-    <td style="color:var(--ink3)">${c.note||'—'}</td>
-    <td>${stB(c.status)}</td>
+    <td style="color:var(--ink3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.note||'—'}</td>
+    <td onclick="event.stopPropagation();cycleConsultStatus(${c.id})" title="클릭: 등록/미등록 변경">${stB(c.status)}</td>
     <td style="color:var(--ink3)">${c.manager||'엄지T'}</td>
-    <td><div class="ta"><button class="btn b-ghost b-xs" onclick="editCon(${c.id})">수정</button><button class="btn b-red b-xs" onclick="delCon(${c.id})">삭제</button></div></td>
+    <td><div class="ta"><button class="btn b-ghost b-xs" onclick="event.stopPropagation();editCon(${c.id})">수정</button><button class="btn b-red b-xs" onclick="event.stopPropagation();delCon(${c.id})">삭제</button></div></td>
   </tr>`).join('');
+}
+function cycleConsultStatus(id){
+  const c=DB.consults.find(x=>x.id===id);if(!c)return;
+  const arr=['✅등록','❌미등록','🔄검토중'];
+  const i=arr.indexOf(c.status);
+  c.status=arr[(i+1)%arr.length];
+  save();
+  if(document.getElementById('page-home')?.classList.contains('on'))renderHome();
+  if(document.getElementById('page-consult')?.classList.contains('on'))renderConsult();
+  toast('→ '+c.status);
+}
+function openConsultDetail(id){
+  const c=DB.consults.find(x=>x.id===id);if(!c)return;
+  const body=`<div style="font-size:13px;line-height:1.9">
+    <div style="font-size:17px;font-weight:800;margin-bottom:2px">${c.name} <span style="font-size:12px;font-weight:600;color:var(--ink3)">${c.grade||''} · ${c.school||''}</span></div>
+    <div style="margin-bottom:12px">${stB(c.status)} <span class="badge b-dk" style="margin-left:4px">${c.route||'경로 미상'}</span></div>
+    <div style="display:grid;grid-template-columns:100px 1fr;gap:6px 10px">
+      <div style="color:var(--ink3);font-weight:700">상담일</div><div>${c.date||'—'}</div>
+      <div style="color:var(--ink3);font-weight:700">현재 레벨</div><div>${c.level||'—'}</div>
+      <div style="color:var(--ink3);font-weight:700">학생 연락처</div><div>${c.student||'—'}</div>
+      <div style="color:var(--ink3);font-weight:700">학부모 연락처</div><div>${c.parent||'—'}</div>
+      <div style="color:var(--ink3);font-weight:700">담당</div><div>${c.manager||'엄지T'}</div>
+    </div>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--bd)">
+      <div style="color:var(--ink3);font-weight:700;margin-bottom:6px">📝 상담 메모 / 특이사항</div>
+      <div style="white-space:pre-wrap;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:14px;min-height:90px">${c.note||'(메모 내용이 없습니다)'}</div>
+    </div>
+  </div>`;
+  openMod('상담 기록 상세',body,`<button class="btn b-ghost" onclick="editCon(${c.id})">수정</button><button class="btn b-ink" onclick="closeMod()">닫기</button>`);
 }
 const cfF=(c={})=>`<div class="fg">
   <div class="ff"><div class="fl">상담일 *</div><input class="fi" type="date" id="cdt" value="${c.date||''}"></div>
@@ -2796,7 +2903,7 @@ window.addEventListener('load',()=>{
   document.addEventListener('click',e=>{const p=document.getElementById('attPop');if(p&&p.style.display!=='none'&&!p.contains(e.target))p.style.display='none';});
   console.log('✅ 관리 선생 v2.0 로드 완료');
 });
-window.addEventListener('resize',()=>{const n=document.getElementById('scSel')?.value;if(n)drawChart(n,curScTab,curScTab==='mid'?'scCvs':'scCvsH');});
+window.addEventListener('resize',()=>{if(curScName&&document.getElementById('page-scores')?.classList.contains('on'))drawChart(curScName,scTypeOf(curScName),'scCvs');});
 </script>
 </body>
 </html>
