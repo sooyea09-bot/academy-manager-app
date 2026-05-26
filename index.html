@@ -78,6 +78,12 @@ button,input,select,textarea{font-family:var(--F)}
 .tw{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:12px}
 th{background:var(--bg2);color:var(--ink2);font-weight:800;font-size:11px;padding:9px 11px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap}
+/* 홈 대시보드 리스트: 약 10행만 보이고 넘치면 세로 스크롤 */
+.hscroll{max-height:430px;overflow-y:auto;overflow-x:auto}
+.hscroll thead th{position:sticky;top:0;z-index:3;background:#fff}
+.hscroll::-webkit-scrollbar{width:8px;height:8px}
+.hscroll::-webkit-scrollbar-thumb{background:#cfcfcf;border-radius:8px}
+.hscroll::-webkit-scrollbar-thumb:hover{background:#b3b3b3}
 td{padding:9px 11px;border-bottom:1px solid var(--bd);color:var(--ink2);vertical-align:middle;font-weight:500}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:rgba(61,111,255,.025)}
@@ -621,21 +627,21 @@ tr:hover .ta{opacity:1}
   <div class="g2" style="margin-bottom:18px">
     <div class="card">
       <div class="ch"><span>🏫</span><h3>내신 D-day 현황</h3></div>
-      <div class="tw"><table><thead><tr><th>학생</th><th>학교</th><th>시험</th><th>D-day</th><th>변형</th><th>교재</th></tr></thead><tbody id="hDday"></tbody></table></div>
+      <div class="tw hscroll"><table><thead><tr><th>학생</th><th>학교</th><th>시험</th><th>D-day</th><th>변형</th><th>교재</th></tr></thead><tbody id="hDday"></tbody></table></div>
     </div>
     <div class="card">
       <div class="ch"><span>📌</span><h3>긴급 TODO ★★★</h3></div>
-      <div id="hTodo"></div>
+      <div id="hTodo" class="hscroll"></div>
     </div>
   </div>
   <div class="g2">
     <div class="card">
       <div class="ch"><span>📊</span><h3>최근 성적 스냅샷</h3><span class="sub">8회차 기준</span></div>
-      <div class="tw"><table><thead><tr><th>학생</th><th>유형</th><th>단어↓</th><th>백지↓</th><th>단원/모의↑</th><th>복습↑</th><th>추세</th></tr></thead><tbody id="hScores"></tbody></table></div>
+      <div class="tw hscroll"><table><thead><tr><th>학생</th><th>유형</th><th>단어↓</th><th>백지↓</th><th>단원/모의↑</th><th>복습↑</th><th>추세</th></tr></thead><tbody id="hScores"></tbody></table></div>
     </div>
     <div class="card">
       <div class="ch"><span>💬</span><h3>최근 상담</h3></div>
-      <div class="tw"><table><thead><tr><th>학생</th><th>학교</th><th>경로</th><th>레벨</th><th>등록</th></tr></thead><tbody id="hConsult"></tbody></table></div>
+      <div class="tw hscroll"><table><thead><tr><th>학생</th><th>학교</th><th>경로</th><th>레벨</th><th>등록</th></tr></thead><tbody id="hConsult"></tbody></table></div>
     </div>
   </div>
 </div>
@@ -1566,8 +1572,8 @@ function renderHome(){
     <div class="stat"><div class="sl">D-day 3일 이내</div><div class="sv2" style="color:var(--amber)">${DB.exams.filter(e=>{ const d=dday(e.date);return d>=0&&d<=3;}).length}<span>건</span></div></div>
     <div class="stat"><div class="sl">상담 전환율</div><div class="sv2">${conv}<span>%</span></div></div>`;
   const sorted=[...DB.exams].sort((a,b)=>new Date(a.date)-new Date(b.date));
-  document.getElementById('hDday').innerHTML=sorted.slice(0,8).map(e=>`<tr><td><b>${e.name}</b></td><td>${e.school}</td><td>${e.exam}</td><td>${ddB(dday(e.date))}</td><td onclick="cycleEx(${e.id},'variation')" style="cursor:pointer" title="클릭: 완료/미완료 변경">${stB(e.variation)}</td><td onclick="cycleEx(${e.id},'book')" style="cursor:pointer" title="클릭: 완료/미완료 변경">${stB(e.book)}</td></tr>`).join('');
-  document.getElementById('hTodo').innerHTML=urg.slice(0,6).map(t=>`
+  document.getElementById('hDday').innerHTML=sorted.map(e=>`<tr><td><b>${e.name}</b></td><td>${e.school}</td><td>${e.exam}</td><td>${ddB(dday(e.date))}</td><td onclick="cycleEx(${e.id},'variation')" style="cursor:pointer" title="클릭: 완료/미완료 변경">${stB(e.variation)}</td><td onclick="cycleEx(${e.id},'book')" style="cursor:pointer" title="클릭: 완료/미완료 변경">${stB(e.book)}</td></tr>`).join('');
+  document.getElementById('hTodo').innerHTML=urg.map(t=>`
     <div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--bd)">
       <div style="width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0"></div>
       <div style="flex:1;cursor:pointer" onclick="openTodoMemo(${t.id})" title="클릭하면 메모 내용을 봅니다"><div style="font-size:12px;font-weight:600">${t.text}</div><div style="font-size:10px;color:var(--ink3)">${t.target}</div></div>
@@ -1585,7 +1591,7 @@ function renderHome(){
     const l0=fields[0]?.label||r[0]?.label||'단어';const l2=fields[2]?.label||r[2]?.label||'단원/모의';const l3=fields[3]?.label||r[3]?.label||'복습';
     return`<tr><td><b>${nm}</b></td><td><span class="badge ${isMid?'b-mid':'b-high'}">${isMid?'초중':'고등'}</span></td><td>${scV(last[0],fields[0]?.dir||'down')}</td><td>${scV(last[1],fields[1]?.dir||'down')}</td><td>${scV(last[2],fields[2]?.dir||'up')}</td><td>${scV(last[3],fields[3]?.dir||'up')}</td><td>${t}</td></tr>`;
   }).join('');
-  document.getElementById('hConsult').innerHTML=DB.consults.slice(0,5).map(c=>`<tr><td onclick="openConsultDetail(${c.id})" style="cursor:pointer" title="클릭: 상세 보기"><b>${c.name}</b></td><td>${c.school}</td><td><span class="badge b-dk">${c.route}</span></td><td>${c.level}</td><td onclick="cycleConsultStatus(${c.id})" style="cursor:pointer" title="클릭: 등록/미등록 변경">${stB(c.status)}</td></tr>`).join('');
+  document.getElementById('hConsult').innerHTML=[...DB.consults].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)).map(c=>`<tr><td onclick="openConsultDetail(${c.id})" style="cursor:pointer" title="클릭: 상세 보기"><b>${c.name}</b></td><td>${c.school}</td><td><span class="badge b-dk">${c.route}</span></td><td>${c.level}</td><td onclick="cycleConsultStatus(${c.id})" style="cursor:pointer" title="클릭: 등록/미등록 변경">${stB(c.status)}</td></tr>`).join('');
 }
 
 /* ═══════════════ STUDENTS ═══════════════ */
