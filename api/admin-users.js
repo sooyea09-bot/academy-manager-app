@@ -47,11 +47,14 @@ export default async function handler(req, res) {
     const rawUsers = Array.isArray(data) ? data : (data.users || []);
     const users = rawUsers.map(function (u) {
       const m = u.user_metadata || {};
+      const am = u.app_metadata || {};
       return {
+        id: u.id,
         email: u.email || '',
         name: m.name || '',
         academy: m.academy_name || '',
-        role: m.invite_code ? 'teacher' : 'owner',
+        role: m.role || (m.invite_code ? 'teacher' : 'owner'),
+        approved: am.approved === true,
         created_at: u.created_at || '',
         last_sign_in_at: u.last_sign_in_at || '',
         confirmed: !!(u.email_confirmed_at || u.confirmed_at)
