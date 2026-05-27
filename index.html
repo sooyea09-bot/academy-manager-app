@@ -1021,8 +1021,9 @@ tr:hover .ta{opacity:1}
 // ═══ Supabase 연동 ═══
 const SUPABASE_URL = 'https://wpvlgcyklnknzdtpnyxv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwdmxnY3lrbG5rbnpkdHBueXh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxODg0MzgsImV4cCI6MjA5NDc2NDQzOH0.fzUiS3v5JHRf0_jvvJwoNEsmOwap19ZCPZenzNnRqJA';
-// persistSession:false → 새로고침/링크 재접속 시 자동 로그인 안 됨. 매번 로그인 창이 뜸 (보안)
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {auth:{persistSession:false, autoRefreshToken:true, detectSessionInUrl:true}});
+// persistSession:true → 같은 기기/브라우저에서는 새로고침해도 로그인 유지(세션은 이 브라우저에만 저장).
+// 다른 기기/브라우저에서는 세션이 없으므로 링크만으로 로그인되지 않음.
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {auth:{persistSession:true, autoRefreshToken:true, detectSessionInUrl:true}});
 let currentUser = null;
 
 function authSetMode(mode){
@@ -1298,10 +1299,7 @@ async function cloudGetTeachers(){
 function getInviteCode(){ return currentUser?.invite_code || ''; }
 
 window.addEventListener('DOMContentLoaded', async ()=>{
-  // 자동 로그인 방지: 예전에 브라우저에 저장된 로그인 세션이 있으면 제거하고 항상 로그인 창부터 보여줌
-  try{ for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.indexOf('sb-')===0&&k.indexOf('auth-token')>=0)localStorage.removeItem(k);} }catch(e){}
-  showAuthScreen();
-  // 비밀번호 재설정/이메일 인증 링크로 들어온 경우에만 세션이 잡힘 (일반 접속은 항상 로그인 창)
+  // 저장된 세션이 있으면 자동 로그인(같은 기기에서 새로고침해도 유지), 없으면 로그인 화면
   const {data:{session}} = await sb.auth.getSession();
   if(session) await loadUserProfile();
   else showAuthScreen();
@@ -1516,22 +1514,32 @@ let DB = (() => {
 })();
 
 function save() {
-  // 1) 로컬 백업 (오프라인 대비)
+  // 1) 로컬 백업 (오프라인 대비) — 항상 먼저 저장되므로 입력한 내용은 보존됨
   try {
     const key = window._userKey || SK;
     localStorage.setItem(key, JSON.stringify(DB));
-  } catch(e) {}
-  // 2) 클라우드 저장 (로그인 상태면)
+  } catch(e) { console.warn('local save', e); }
+  // 2) 클라우드 저장 (로그인 상태면) — 실패 시 자동 재시도(최대 2회)
   if (typeof sb !== 'undefined' && typeof currentUser !== 'undefined' && currentUser) {
-    try {
-      sb.from('user_data').upsert(
-        {user_id: currentUser.id, data: DB, updated_at: new Date().toISOString()},
-        {onConflict:'user_id'}
-      ).then(r=>{
-        if(r && r.error){ console.warn('cloud sync', r.error.message); toast('⚠️ 클라우드 저장 실패 (로컬엔 저장됨)'); }
-        else { toast('☁️ 저장됨 (클라우드)'); }
-      });
-    } catch(e) { toast('✅ 저장됨 (로컬)'); }
+    const uid = currentUser.id;
+    const snapshot = JSON.stringify(DB); // 저장 시점 데이터 고정
+    const attempt = (n)=>{
+      try{
+        sb.from('user_data').upsert(
+          {user_id: uid, data: JSON.parse(snapshot), updated_at: new Date().toISOString()},
+          {onConflict:'user_id'}
+        ).then(r=>{
+          if(r && r.error){
+            if(n < 2){ setTimeout(()=>attempt(n+1), 700*(n+1)); }
+            else { console.warn('cloud sync', r.error.message); toast('⚠️ 클라우드 저장 실패 — 로컬엔 저장됨. 인터넷 확인 후 다시 시도하세요.'); }
+          } else { toast('☁️ 저장됨'); }
+        }, err=>{
+          if(n < 2){ setTimeout(()=>attempt(n+1), 700*(n+1)); }
+          else { console.warn('cloud sync', err); toast('⚠️ 클라우드 저장 실패 — 로컬엔 저장됨. 인터넷 확인 후 다시 시도하세요.'); }
+        });
+      }catch(e){ if(n<2){ setTimeout(()=>attempt(n+1), 700*(n+1)); } else { toast('✅ 저장됨 (로컬)'); } }
+    };
+    attempt(0);
   } else {
     toast('✅ 저장됨');
   }
