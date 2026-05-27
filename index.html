@@ -942,7 +942,7 @@ tr:hover .ta{opacity:1}
   </div>
   <div class="card">
     <div class="tw"><table>
-      <thead><tr><th>#</th><th>이메일</th><th>이름</th><th>학원</th><th>역할</th><th>가입일</th><th>최근 접속</th><th>인증</th></tr></thead>
+      <thead><tr><th>#</th><th>이메일</th><th>이름</th><th>학원</th><th>구분</th><th>가입일</th><th>인증</th><th>승인</th></tr></thead>
       <tbody id="adminTb"></tbody>
     </table></div>
   </div>
@@ -1086,30 +1086,53 @@ async function doLogout(){
 async function loadUserProfile(){
   const {data:{user}} = await sb.auth.getUser();
   if(!user) return showAuthScreen();
-  // 프로필 정보(학원명·이름·역할)는 가입 시 저장된 메타데이터에서 직접 읽음.
-  // → profiles 테이블/트리거에 의존하지 않으므로 "프로필 로드 실패" 오류가 없음.
   const meta = user.user_metadata || {};
+  const appMeta = user.app_metadata || {};
+  const email = (user.email||'').toLowerCase();
+  const isAdmin = (typeof ADMIN_EMAILS!=='undefined') && ADMIN_EMAILS.indexOf(email)>=0;
+  // 승인 시스템: 원장(관리자)은 항상 통과, 그 외에는 app_metadata.approved===true 일 때만 입장
+  const approved = isAdmin || appMeta.approved===true;
+  if(!approved){
+    showPendingScreen(user.email||'');
+    return;
+  }
   currentUser = {
     id: user.id,
     email: user.email,
     name: meta.name || (user.email ? user.email.split('@')[0] : '선생님'),
-    role: meta.invite_code ? 'teacher' : 'owner',
+    role: meta.role || (meta.invite_code ? 'teacher' : 'owner'),
     academy_id: user.id,
     academy_name: meta.academy_name || '내 학원',
     invite_code: ''
   };
+  const ps=document.getElementById('pendingScreen'); if(ps) ps.remove();
   document.getElementById('authScreen').classList.add('hidden');
   renderUserBanner();
   await loadAllFromCloud();
   if(typeof ensureStudentRecords === 'function') ensureStudentRecords();
   if(typeof goPage === 'function') goPage('home');
 }
+// 승인 대기 화면 (승인 안 된 가입자 로그인 시)
+function showPendingScreen(email){
+  document.getElementById('authScreen')?.classList.add('hidden');
+  if(document.getElementById('pendingScreen')) return;
+  const d=document.createElement('div');
+  d.id='pendingScreen';
+  d.style.cssText="position:fixed;inset:0;background:#fff;z-index:100000;display:flex;align-items:center;justify-content:center;font-family:'Noto Sans KR',sans-serif";
+  d.innerHTML=`<div style="max-width:400px;text-align:center;padding:30px">
+    <div style="font-size:46px;margin-bottom:12px">⏳</div>
+    <h2 style="font-size:21px;font-weight:900;color:#111;margin-bottom:12px">승인 대기 중입니다</h2>
+    <p style="color:#555;line-height:1.85;font-size:14px">가입 신청이 정상 접수되었습니다.<br><b>${email}</b><br><br>원장님(관리자) 승인이 완료되면 이용하실 수 있어요.<br>승인 후 다시 로그인해 주세요.</p>
+    <button onclick="doLogout()" style="margin-top:24px;background:#111;color:#fff;border:none;padding:12px 28px;border-radius:8px;font-weight:800;cursor:pointer;font-family:inherit">로그아웃</button>
+  </div>`;
+  document.body.appendChild(d);
+}
 
 function renderUserBanner(){
   if(!currentUser) return;
   const acad = currentUser.academy_name || '내 학원';
   const teacher = currentUser.name || '선생님';
-  const roleTxt = currentUser.role==='owner' ? '원장' : '선생님';
+  const roleTxt = currentUser.role==='owner' ? '원장' : (currentUser.role==='teacher' ? '선생님' : (currentUser.role||'선생님'));
   // 사이드바 학원 박스 + 유저 로우에 로그인한 계정 정보 반영
   const an=document.getElementById('sbAcademyName'); if(an) an.textContent = acad;
   const at=document.getElementById('sbAcademyTeacher'); if(at) at.textContent = teacher + ' ' + roleTxt;
@@ -1143,19 +1166,38 @@ async function renderAdmin(){
     const fmt=d=>{ if(!d) return '—'; const x=new Date(d); if(isNaN(x)) return '—'; return `${x.getFullYear()}.${String(x.getMonth()+1).padStart(2,'0')}.${String(x.getDate()).padStart(2,'0')}`; };
     const users=data.users||[];
     if(cnt) cnt.textContent=`총 ${data.count||users.length}명`;
-    tb.innerHTML = users.length ? users.map((u,i)=>`<tr>
+    tb.innerHTML = users.length ? users.map((u,i)=>{
+      const roleLabel = u.role==='owner'?'원장':u.role==='teacher'?'선생님':(u.role||'—');
+      const appBtn = u.approved
+        ? `<span class="badge b-G">✅ 승인됨</span> <button class="btn b-ghost b-xs" onclick="approveUser('${u.id}',false)" style="margin-left:4px">해제</button>`
+        : `<button class="btn b-blue b-xs" onclick="approveUser('${u.id}',true)">⏳ 승인하기</button>`;
+      return `<tr>
       <td>${i+1}</td>
       <td><b>${u.email||'—'}</b></td>
       <td>${u.name||'—'}</td>
       <td>${u.academy||'—'}</td>
-      <td>${u.role==='owner'?'<span class="badge b-B">원장</span>':'<span class="badge b-dk">선생님</span>'}</td>
+      <td>${roleLabel}</td>
       <td style="font-family:var(--M);font-size:11px">${fmt(u.created_at)}</td>
-      <td style="font-family:var(--M);font-size:11px;color:var(--ink3)">${fmt(u.last_sign_in_at)}</td>
       <td>${u.confirmed?'<span class="badge b-G">✅</span>':'<span class="badge b-A">대기</span>'}</td>
-    </tr>`).join('') : '<tr><td colspan="8" style="padding:16px;text-align:center;color:var(--ink3)">가입자가 없습니다.</td></tr>';
+      <td>${appBtn}</td>
+    </tr>`;}).join('') : '<tr><td colspan="8" style="padding:16px;text-align:center;color:var(--ink3)">가입자가 없습니다.</td></tr>';
   }catch(e){
     if(tb) tb.innerHTML=`<tr><td colspan="8" style="padding:16px;text-align:center;color:var(--red)">오류: ${String(e.message||e)}</td></tr>`;
   }
+}
+// 가입자 승인/해제 (원장 전용)
+async function approveUser(userId, approved){
+  if(!userId) return;
+  if(!approved && !confirm('이 사용자의 승인을 해제할까요? 해제하면 앱을 사용할 수 없게 됩니다.')) return;
+  try{
+    const {data:{session}} = await sb.auth.getSession();
+    const token = session && session.access_token;
+    const r = await fetch('/api/admin-approve',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({userId:userId,approved:approved})});
+    const d = await r.json();
+    if(!r.ok){ toast('실패: '+(d.error||'승인 처리 오류')); return; }
+    toast(approved?'✅ 승인 완료':'승인 해제됨');
+    renderAdmin();
+  }catch(e){ toast('오류: '+String(e.message||e)); }
 }
 
 function showAuthScreen(){ document.getElementById('authScreen').classList.remove('hidden'); }
