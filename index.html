@@ -624,7 +624,7 @@ tr:hover .ta{opacity:1}
       <div class="tw hscroll"><table><thead><tr><th>학생</th><th>학교</th><th>시험</th><th>D-day</th><th>변형</th><th>교재</th></tr></thead><tbody id="hDday"></tbody></table></div>
     </div>
     <div class="card">
-      <div class="ch"><span>📌</span><h3>긴급 TODO ★★★</h3></div>
+      <div class="ch"><span>📌</span><h3>수업준비 TODO</h3><span class="sub">우선순위순</span></div>
       <div id="hTodo" class="hscroll"></div>
     </div>
   </div>
@@ -1652,13 +1652,20 @@ function renderHome(){
     <div class="stat"><div class="sl">상담 전환율</div><div class="sv2">${conv}<span>%</span></div></div>`;
   const sorted=[...DB.exams].sort((a,b)=>(a.date?new Date(a.date).getTime():Infinity)-(b.date?new Date(b.date).getTime():Infinity));
   document.getElementById('hDday').innerHTML=sorted.map(e=>`<tr><td><b>${e.name}</b></td><td>${e.school}</td><td>${e.exam}</td><td>${ddB(dday(e.date))}</td><td onclick="cycleEx(${e.id},'variation')" style="cursor:pointer" title="클릭: 완료/미완료 변경">${stB(e.variation)}</td><td onclick="cycleEx(${e.id},'book')" style="cursor:pointer" title="클릭: 완료/미완료 변경">${stB(e.book)}</td></tr>`).join('');
-  document.getElementById('hTodo').innerHTML=urg.map(t=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--bd)">
-      <div style="width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0"></div>
-      <div style="flex:1;cursor:pointer" onclick="openTodoMemo(${t.id})" title="클릭하면 메모 내용을 봅니다"><div style="font-size:12px;font-weight:600">${t.text}</div><div style="font-size:10px;color:var(--ink3)">${t.target}</div></div>
+  const prRank=p=>p==='★★★'?3:p==='★★'?2:p==='★'?1:0;
+  const prColor=p=>p==='★★★'?'var(--red)':p==='★★'?'var(--amber)':p==='★'?'var(--blue)':'var(--ink3)';
+  const todoSorted=[...DB.todos].sort((a,b)=>{
+    const d=prRank(b.priority)-prRank(a.priority); if(d)return d;
+    const s=(a.status==='완료'?1:0)-(b.status==='완료'?1:0); if(s)return s;
+    return (a.due?new Date(a.due).getTime():Infinity)-(b.due?new Date(b.due).getTime():Infinity);
+  });
+  document.getElementById('hTodo').innerHTML=todoSorted.map(t=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--bd);${t.status==='완료'?'opacity:.55':''}">
+      <div style="width:8px;height:8px;border-radius:50%;background:${prColor(t.priority)};flex-shrink:0" title="${t.priority||'우선순위 없음'}"></div>
+      <div style="flex:1;cursor:pointer;min-width:0" onclick="openTodoMemo(${t.id})" title="클릭하면 메모 내용을 봅니다"><div style="font-size:12px;font-weight:600;${t.status==='완료'?'text-decoration:line-through':''}">${t.priority?'<span style="color:'+prColor(t.priority)+';font-size:10px;margin-right:4px">'+t.priority+'</span>':''}${t.text}</div><div style="font-size:10px;color:var(--ink3)">${t.target||''}</div></div>
       ${ddB(dday(t.due))}
       <span onclick="event.stopPropagation();cycleTodo(${t.id})" class="badge ${t.status==='완료'?'b-G':t.status==='진행중'?'b-A':'b-dk'}" style="cursor:pointer" title="클릭: 완료/미완료 변경">${t.status}</span>
-    </div>`).join('')||'<div style="padding:16px;text-align:center;color:var(--ink3);font-size:12px">긴급 항목 없음 ✅</div>';
+    </div>`).join('')||'<div style="padding:16px;text-align:center;color:var(--ink3);font-size:12px">등록된 TODO 없음 ✅</div>';
   const allSc={...DB.scMid,...DB.scHigh};
   document.getElementById('hScores').innerHTML=Object.entries(allSc).map(([nm,sd])=>{
     const r=sd.rows;const isMid=DB.scMid[nm]!=null;
