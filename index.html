@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: 2026-05-28-milestone -->
+<!-- build: 2026-05-28-numinput -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -2149,17 +2149,11 @@ function editMeta(nm,field,el){
   const commit=()=>{if(DB.lessons[nm])DB.lessons[nm][field]=inp.value;save();showLesson(nm);};
   inp.addEventListener('blur',commit);inp.addEventListener('keydown',e=>{if(e.key==='Enter')commit();if(e.key==='Escape')showLesson(nm);});
 }
-// 회차 점수 입력칸: 틀린수(dir=down)는 드롭다운, 점수(dir=up)는 숫자 입력
+// 회차 점수 입력칸: 틀린수·점수 모두 숫자 직접 입력 (라벨 ↑점수/↓틀린수로 구분)
 function lScoreInput(id, field, val){
   const dir=(field&&field.dir)||'up';
-  if(dir==='down'){
-    const cur=(val==null||val==='')?'':String(val);
-    const mx=Math.max(20, (val!=null&&!isNaN(val))?Number(val):0);
-    let opts='<option value="">-</option>';
-    for(let k=0;k<=mx;k++){opts+=`<option value="${k}" ${cur===String(k)?'selected':''}>${k}</option>`;}
-    return `<select class="fsel" id="${id}">${opts}</select>`;
-  }
-  return `<input class="fi" type="number" id="${id}" value="${val==null?'':val}" placeholder="점수">`;
+  const ph=dir==='down'?'틀린 수':'점수';
+  return `<input class="fi" type="number" id="${id}" value="${val==null?'':val}" placeholder="${ph}">`;
 }
 function lScoreLabel(field,fallback){const f=field||{};const lab=f.label||fallback;return `${lab} ${f.dir==='down'?'↓ 틀린수':'↑ 점수'}`;}
 // 지각 드롭다운/배지: 정시 / 5·10·15·20·30분 이상 (스크롤로 선택)
