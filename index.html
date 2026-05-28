@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: 2026-05-27-todosort -->
+<!-- build: 2026-05-28-lessonscore -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1300,7 +1300,15 @@ async function cloudGetTeachers(){
 function getInviteCode(){ return currentUser?.invite_code || ''; }
 
 window.addEventListener('DOMContentLoaded', async ()=>{
-  // 저장된 세션이 있으면 자동 로그인(같은 기기에서 새로고침해도 유지), 없으면 로그인 화면
+  // 모바일(휴대폰/태블릿): 링크로 접속하면 항상 로그아웃 상태로 시작(보안).
+  //   - scope:'local' → 이 기기 세션만 지움. 데스크톱(원장님 PC) 로그인에는 영향 없음.
+  // 데스크톱: 저장된 세션이 있으면 자동 로그인(같은 기기에서 새로고침해도 유지).
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent||'');
+  if(isMobile){
+    try{ await sb.auth.signOut({scope:'local'}); }catch(e){}
+    showAuthScreen();
+    return;
+  }
   const {data:{session}} = await sb.auth.getSession();
   if(session) await loadUserProfile();
   else showAuthScreen();
@@ -2139,6 +2147,24 @@ function editMeta(nm,field,el){
   const commit=()=>{if(DB.lessons[nm])DB.lessons[nm][field]=inp.value;save();showLesson(nm);};
   inp.addEventListener('blur',commit);inp.addEventListener('keydown',e=>{if(e.key==='Enter')commit();if(e.key==='Escape')showLesson(nm);});
 }
+// 회차 점수 입력칸: 틀린수(dir=down)는 드롭다운, 점수(dir=up)는 숫자 입력
+function lScoreInput(id, field, val){
+  const dir=(field&&field.dir)||'up';
+  if(dir==='down'){
+    const cur=(val==null||val==='')?'':String(val);
+    const mx=Math.max(20, (val!=null&&!isNaN(val))?Number(val):0);
+    let opts='<option value="">-</option>';
+    for(let k=0;k<=mx;k++){opts+=`<option value="${k}" ${cur===String(k)?'selected':''}>${k}</option>`;}
+    return `<select class="fsel" id="${id}">${opts}</select>`;
+  }
+  return `<input class="fi" type="number" id="${id}" value="${val==null?'':val}" placeholder="점수">`;
+}
+function lScoreLabel(field,fallback){const f=field||{};const lab=f.label||fallback;return `${lab} ${f.dir==='down'?'↓ 틀린수':'↑ 점수'}`;}
+// 회차 저장 후 홈/성적카드 등 파생 화면이 열려 있으면 즉시 갱신
+function refreshDerived(){
+  try{ if(document.getElementById('page-home')?.classList.contains('on'))renderHome(); }catch(e){}
+  try{ if(document.getElementById('page-scores')?.classList.contains('on'))renderScores(); }catch(e){}
+}
 function openLessonAddModal(){
   const nm=document.getElementById('lesSel')?.value;const ld=DB.lessons[nm];const nxt=ld?`${ld.rows.length+1}회`:'1회';
   const st=DB.students.find(s=>s.name===nm);const cfg=getCfg();
@@ -2164,10 +2190,10 @@ function openLessonAddModal(){
     <div class="ff"><div class="fl">🧑‍🏫 선생님 기록 <span style="color:var(--ink4);font-size:10px">(통합·학부모 문구 미반영)</span></div><textarea class="fta" id="ltn" rows="2" placeholder="이 회차 선생님용 메모 — 통합 리포트나 학부모 카톡에는 들어가지 않습니다"></textarea></div>
   </div>
   <div class="fg">
-    <div class="ff"><div class="fl">${f0.label} ${f0.dir==='up'?'↑':'↓'}</div><input class="fi" type="number" id="lw" placeholder="${f0.dir==='down'?'틀린 수':'점수'}"></div>
-    <div class="ff"><div class="fl">${f1.label} ${f1.dir==='up'?'↑':'↓'}</div><input class="fi" type="number" id="lb" placeholder="${f1.dir==='down'?'틀린 수':'점수'}"></div>
-    <div class="ff"><div class="fl">${f2.label} ${f2.dir==='up'?'↑':'↓'}</div><input class="fi" type="number" id="ld" placeholder="점수"></div>
-    <div class="ff"><div class="fl">${f3.label} ${f3.dir==='up'?'↑':'↓'}</div><input class="fi" type="number" id="lr" placeholder="점수"></div>
+    <div class="ff"><div class="fl">${lScoreLabel(f0,'단어')}</div>${lScoreInput('lw',f0,null)}</div>
+    <div class="ff"><div class="fl">${lScoreLabel(f1,'백지')}</div>${lScoreInput('lb',f1,null)}</div>
+    <div class="ff"><div class="fl">${lScoreLabel(f2,'단원/모의')}</div>${lScoreInput('ld',f2,null)}</div>
+    <div class="ff"><div class="fl">${lScoreLabel(f3,'복습/미니')}</div>${lScoreInput('lr',f3,null)}</div>
   </div>
   <hr style="border-color:var(--bd);margin:10px 0">
   <div class="fg">
@@ -2191,7 +2217,7 @@ function saveLR(nm){
   const st=DB.students.find(s=>s.name===nm);const tab=st?.stype||'mid';const db=tab==='mid'?DB.scMid:DB.scHigh;
   if(!db[nm])db[nm]={rows:[{label:'단어(틀린수)',dir:'down',vals:Array(8).fill(null)},{label:'백지(틀린수)',dir:'down',vals:Array(8).fill(null)},{label:tab==='mid'?'단원(점수)':'모의(총점)',dir:'up',vals:Array(8).fill(null)},{label:tab==='mid'?'복습(점수)':'미니(틀린수)',dir:tab==='mid'?'up':'down',vals:Array(8).fill(null)}]};
   const ci=DB.lessons[nm].rows.length-1;if(ci<8){const sc=db[nm].rows;if(row.word!=null)sc[0].vals[ci]=row.word;if(row.baek!=null)sc[1].vals[ci]=row.baek;if(row.dan!=null)sc[2].vals[ci]=row.dan;if(row.rev!=null)sc[3].vals[ci]=row.rev;}
-  save();closeMod();showLesson(nm);
+  save();closeMod();showLesson(nm);refreshDerived();
 }
 function openLessonEditList(){
   const nm=document.getElementById('lesSel')?.value;const ld=DB.lessons[nm];if(!ld?.rows?.length){toast('수업 기록이 없습니다');return;}
@@ -2208,6 +2234,9 @@ function openLessonEditList(){
 }
 function editLRow(nm,ri){
   const r=DB.lessons[nm].rows[ri];
+  const st=DB.students.find(s=>s.name===nm);const efields=getCfgFields(st?.stype||'mid');
+  const g0=efields[0]||{label:'단어(틀린수)',dir:'down'};const g1=efields[1]||{label:'백지(틀린수)',dir:'down'};
+  const g2=efields[2]||{label:'단원(점수)',dir:'up'};const g3=efields[3]||{label:'복습(점수)',dir:'up'};
   openMod(`${r.no} 수정`,`<div class="fg">
     <div class="ff"><div class="fl">회차</div><input class="fi" id="eno" value="${r.no||''}"></div>
     <div class="ff"><div class="fl">수업일</div><input class="fi" type="date" id="edt" value="${r.date||''}"></div>
@@ -2221,10 +2250,10 @@ function editLRow(nm,ri){
     <div class="ff fs2"><div class="fl">숙제 미완료</div><textarea class="fta" id="ehw" rows="2">${r.hw||''}</textarea></div>
     <div class="ff fs2"><div class="fl">🧑‍🏫 선생님 기록 <span style="color:var(--ink4);font-size:10px">(통합·학부모 문구 미반영)</span></div><textarea class="fta" id="etn" rows="2">${r.tnote||''}</textarea></div>
     <div class="ff fs2"><div class="fl">특이사항</div><input class="fi" id="enote" value="${r.note||''}"></div>
-    <div class="ff"><div class="fl">단어</div><input class="fi" type="number" id="ew" value="${r.word??''}"></div>
-    <div class="ff"><div class="fl">백지</div><input class="fi" type="number" id="eb" value="${r.baek??''}"></div>
-    <div class="ff"><div class="fl">단원/모의</div><input class="fi" type="number" id="ed" value="${r.dan??''}"></div>
-    <div class="ff"><div class="fl">복습/미니</div><input class="fi" type="number" id="er" value="${r.rev??''}"></div>
+    <div class="ff"><div class="fl">${lScoreLabel(g0,'단어')}</div>${lScoreInput('ew',g0,r.word)}</div>
+    <div class="ff"><div class="fl">${lScoreLabel(g1,'백지')}</div>${lScoreInput('eb',g1,r.baek)}</div>
+    <div class="ff"><div class="fl">${lScoreLabel(g2,'단원/모의')}</div>${lScoreInput('ed',g2,r.dan)}</div>
+    <div class="ff"><div class="fl">${lScoreLabel(g3,'복습/미니')}</div>${lScoreInput('er',g3,r.rev)}</div>
   </div>`,`<button class="btn b-ghost" onclick="openLessonEditList()">뒤로</button><button class="btn b-blue" onclick="saveEditLR('${nm}',${ri})">저장</button>`);
 }
 function selEditAtt(el){document.querySelectorAll('#eAttSel .att').forEach(e=>e.className=`att a-no`);const o=ATTS.find(x=>x.k===el.dataset.att);el.className=`att ${o?.c||'a-et'}`;}
@@ -2232,10 +2261,11 @@ function saveEditLR(nm,ri){
   const tn=v=>v===''?null:v?Number(v):null;
   const attEl=document.querySelector('#eAttSel .att:not(.a-no)');
   Object.assign(DB.lessons[nm].rows[ri],{no:gv('eno'),date:gv('edt'),content:gv('econ'),hw:gv('ehw'),rate:gv('ert'),word:tn(gv('ew')),baek:tn(gv('eb')),dan:tn(gv('ed')),rev:tn(gv('er')),att:attEl?.dataset.att||DB.lessons[nm].rows[ri].att||null,tnote:gv('etn'),note:gv('enote')});
-  // 성적카드 연동
+  // 성적카드 자동 연동 (틀린수·점수 → 통합·홈 성적카드·그래프 자동 반영)
   const st=DB.students.find(s=>s.name===nm);const tab=st?.stype||'mid';const db=tab==='mid'?DB.scMid:DB.scHigh;
-  if(db[nm]&&ri<8){const r=DB.lessons[nm].rows[ri];const sc=db[nm].rows;if(r.word!=null)sc[0].vals[ri]=r.word;if(r.baek!=null)sc[1].vals[ri]=r.baek;if(r.dan!=null)sc[2].vals[ri]=r.dan;if(r.rev!=null)sc[3].vals[ri]=r.rev;}
-  save();closeMod();showLesson(nm);
+  if(!db[nm]){const ff=getCfgFields(tab);db[nm]={rows:ff.map(f=>({label:f.label,dir:f.dir,vals:[null,null,null,null,null,null,null,null]}))};}
+  if(ri<8){const r=DB.lessons[nm].rows[ri];const sc=db[nm].rows;if(sc[0])sc[0].vals[ri]=r.word;if(sc[1])sc[1].vals[ri]=r.baek;if(sc[2])sc[2].vals[ri]=r.dan;if(sc[3])sc[3].vals[ri]=r.rev;}
+  save();closeMod();showLesson(nm);refreshDerived();
 }
 function delLRow(nm,ri){if(!confirm('삭제?'))return;DB.lessons[nm].rows.splice(ri,1);save();closeMod();showLesson(nm);}
 function copyKakao(){
