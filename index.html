@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: 2026-05-28-late-uni -->
+<!-- build: 2026-05-28-milestone -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1113,6 +1113,8 @@ async function loadUserProfile(){
   await loadAllFromCloud();
   if(typeof ensureStudentRecords === 'function') ensureStudentRecords();
   if(typeof goPage === 'function') goPage('home');
+  // 로그인 직후: 8회차 완료된 학생이 있으면 알림 팝업
+  if(typeof checkMilestones === 'function') setTimeout(checkMilestones, 800);
 }
 // 승인 대기 화면 (승인 안 된 가입자 로그인 시)
 function showPendingScreen(email){
@@ -2175,6 +2177,82 @@ function lateBadge(v){
 function refreshDerived(){
   try{ if(document.getElementById('page-home')?.classList.contains('on'))renderHome(); }catch(e){}
   try{ if(document.getElementById('page-scores')?.classList.contains('on'))renderScores(); }catch(e){}
+}
+
+/* ─ 8회차 완료 알림: 8/16/24…회차 마다 학부모 안내 팝업 ─ */
+let _milestonesActive=[];
+function checkMilestones(){
+  const items=[];
+  Object.keys(DB.lessons||{}).forEach(nm=>{
+    const ld=DB.lessons[nm];
+    if(!ld?.rows?.length)return;
+    const count=ld.rows.length;
+    const cur=Math.floor(count/8)*8; // 8, 16, 24…
+    if(cur<8)return;
+    if((ld.notified8||0)<cur) items.push({name:nm,sessions:cur});
+  });
+  if(items.length){ setTimeout(()=>showMilestoneModal(items),700); }
+}
+function showMilestoneModal(items){
+  _milestonesActive=items.slice();
+  const body=`
+    <div style="font-size:13px;line-height:1.55;margin-bottom:14px;background:#FBF3E2;border:1px solid #e0c98a;border-radius:8px;padding:12px">
+      🎉 <b>8회차 수업이 완료된 학생이 있어요!</b><br>
+      <span style="color:var(--ink3);font-size:11.5px">학부모에게 8회차 통합 피드백 카톡과 수강료 안내 문자를 보낼 시점입니다.</span>
+    </div>
+    <div id="mileList">${items.map((m,i)=>_mileCardHtml(m,i)).join('')}</div>`;
+  openMod('🔔 8회차 완료 — 학부모 안내 시점',body,
+    `<button class="btn b-ghost" onclick="closeMod()">닫기</button>
+     <button class="btn b-blue" onclick="milestoneAckAll()">모두 확인 완료</button>`);
+}
+function _mileCardHtml(m,i){
+  return `<div id="mile-${i}" style="border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:8px;background:#fff">
+    <div style="font-weight:800;font-size:14px;margin-bottom:8px">${m.name} <span style="color:var(--amber);font-size:11px;font-weight:700">— ${m.sessions}회차 완료</span></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn b-blue b-sm" onclick="milestoneFeedback(${i})">📝 8회차 피드백 카톡</button>
+      <button class="btn b-ink b-sm" onclick="milestoneTuition(${i})">💰 수강료 문자</button>
+      <button class="btn b-ghost b-sm" onclick="milestoneLater(${i})">⏭ 나중에</button>
+    </div>
+  </div>`;
+}
+function _mileRemoveCard(i){
+  const c=document.getElementById('mile-'+i); if(c)c.remove();
+  _milestonesActive[i]=null;
+  if(_milestonesActive.every(x=>!x))closeMod();
+}
+function _mileMarkNotified(i){
+  const m=_milestonesActive[i]; if(!m||!DB.lessons[m.name])return;
+  DB.lessons[m.name].notified8=m.sessions; save();
+}
+function milestoneLater(i){ _mileRemoveCard(i); }
+function milestoneAckAll(){
+  (_milestonesActive||[]).forEach(m=>{ if(m && DB.lessons[m.name]) DB.lessons[m.name].notified8=m.sessions; });
+  save(); closeMod(); toast('✅ 모두 확인 처리됨');
+}
+function milestoneFeedback(i){
+  const m=_milestonesActive[i]; if(!m)return;
+  _mileMarkNotified(i); _mileRemoveCard(i);
+  if(typeof goPage==='function') goPage('ai');
+  setTimeout(()=>{
+    const sel=document.getElementById('kkSel');
+    if(sel && [...sel.options].some(o=>o.value===m.name)){
+      sel.value=m.name;
+      if(typeof gen8Feedback==='function') gen8Feedback();
+    } else {
+      toast('AI 조교 페이지에서 학생을 선택하고 8회차 피드백 생성을 눌러주세요');
+    }
+  },500);
+}
+function milestoneTuition(i){
+  const m=_milestonesActive[i]; if(!m)return;
+  _mileMarkNotified(i); _mileRemoveCard(i);
+  const academy=(typeof currentUser!=='undefined' && currentUser?.academy_name) || '저희 학원';
+  const txt=`안녕하세요 ${m.name} 어머님,\n${academy}입니다.\n\n${m.name} 학생이 ${m.sessions}회차 수업을 모두 마쳐서\n다음 수강료 안내드립니다.\n\n💰 수강료: [금액 입력]\n🏦 계좌: [은행/계좌번호 입력]\n📅 입금 기한: [날짜 입력]\n\n수업 종합 피드백은 별도 카톡으로 보내드릴게요.\n언제든 궁금하신 점은 편하게 연락 주세요.\n감사합니다.\n${academy} 드림`;
+  openMod(`💰 수강료 안내 문자 — ${m.name}`,
+    `<textarea id="tuitMsg" style="width:100%;min-height:280px;padding:12px;font-size:13px;border:1px solid var(--bd);border-radius:8px;font-family:inherit;line-height:1.6;resize:vertical">${txt}</textarea>
+     <p style="font-size:11px;color:var(--ink3);margin-top:8px">💡 금액 · 계좌 · 입금 기한은 직접 채워 넣고 복사해서 보내세요.</p>`,
+    `<button class="btn b-ghost" onclick="closeMod()">닫기</button>
+     <button class="btn b-blue" onclick="(function(){const t=document.getElementById('tuitMsg').value;if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){toast('✅ 복사됨')}).catch(function(){toast('복사 실패')});}else{toast('복사 권한 없음')}})()">📋 복사</button>`);
 }
 function openLessonAddModal(){
   const nm=document.getElementById('lesSel')?.value;const ld=DB.lessons[nm];const nxt=ld?`${ld.rows.length+1}회`:'1회';
