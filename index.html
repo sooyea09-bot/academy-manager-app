@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: 2026-05-28-lessonscore -->
+<!-- build: 2026-05-28-late -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -2089,7 +2089,7 @@ function showLesson(nm){
   const scoreKeys=['word','baek','dan','rev','ext1','ext2'];
   const body=ld.rows.map((r,ri)=>{
     let row=`<div style="font-weight:700;font-family:var(--M);justify-content:center;color:var(--ink);padding:9px 8px 9px 16px;">${r.no}</div>`;
-    row+=`<div style="color:var(--ink3);font-size:11px">${r.date?.slice(5)||''}${r.tnote?' 🧑‍🏫':''}</div>`;
+    row+=`<div style="color:var(--ink3);font-size:11px">${r.date?.slice(5)||''}${r.tnote?' 🧑‍🏫':''}${r.late?' '+lateBadge(r.late):''}</div>`;
     row+=`<div style="line-height:1.5;white-space:pre-wrap">${r.content||'—'}</div>`;
     if(showHw)row+=`<div style="line-height:1.5;white-space:pre-wrap;color:var(--ink3)">${r.hw||'—'}</div>`;
     row+=`<div style="justify-content:center">${r.rate||'—'}</div>`;
@@ -2114,7 +2114,7 @@ function openLessonDetail(nm,ri){
   const scoreRows=fields.slice(0,4).map((f,i)=>`<div style="color:var(--ink3);font-weight:700">${f.label}</div><div>${scV(r[keys[i]],f.dir)}</div>`).join('');
   const body=`<div style="font-size:13px;line-height:1.9">
     <div style="font-size:16px;font-weight:800;margin-bottom:2px">${r.no||''} <span style="font-size:12px;font-weight:600;color:var(--ink3)">${r.date?fmtKDate(r.date):''}</span></div>
-    <div style="margin-bottom:12px">${attB(r.att)} <span class="badge b-dk" style="margin-left:4px">완료도 ${r.rate||'—'}</span></div>
+    <div style="margin-bottom:12px">${attB(r.att)} <span class="badge b-dk" style="margin-left:4px">완료도 ${r.rate||'—'}</span>${lateBadge(r.late)}</div>
     <div style="margin-bottom:8px"><div style="color:var(--ink3);font-weight:700;margin-bottom:4px">📌 수업 내용</div><div style="white-space:pre-wrap;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:12px">${r.content||'—'}</div></div>
     <div style="margin-bottom:8px"><div style="color:var(--ink3);font-weight:700;margin-bottom:4px">✏️ 숙제 미완료</div><div style="white-space:pre-wrap;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:12px">${r.hw||'—'}</div></div>
     <div style="display:grid;grid-template-columns:120px 1fr;gap:5px 10px;margin:10px 0;align-items:center">${scoreRows}</div>
@@ -2160,6 +2160,17 @@ function lScoreInput(id, field, val){
   return `<input class="fi" type="number" id="${id}" value="${val==null?'':val}" placeholder="점수">`;
 }
 function lScoreLabel(field,fallback){const f=field||{};const lab=f.label||fallback;return `${lab} ${f.dir==='down'?'↓ 틀린수':'↑ 점수'}`;}
+// 지각 드롭다운/배지: 정시 / 5·10·15·20·30분 이상 (스크롤로 선택)
+function lateOpts(cur){
+  const opts=[['','정시'],['5','5분 지각'],['10','10분 지각'],['15','15분 지각'],['20','20분 지각'],['30','30분 이상 지각']];
+  const c=String(cur==null?'':cur);
+  return opts.map(o=>`<option value="${o[0]}" ${c===o[0]?'selected':''}>${o[1]}</option>`).join('');
+}
+function lateBadge(v){
+  if(v==null||v==='')return '';
+  const s=String(v); const lab=s==='30'?'30분+ 지각':s+'분 지각';
+  return `<span class="badge" style="background:#FBF3E2;color:#8A5B14;border:1px solid #e0c98a;font-size:10px;padding:2px 6px;border-radius:6px;margin-left:4px">🕒 ${lab}</span>`;
+}
 // 회차 저장 후 홈/성적카드 등 파생 화면이 열려 있으면 즉시 갱신
 function refreshDerived(){
   try{ if(document.getElementById('page-home')?.classList.contains('on'))renderHome(); }catch(e){}
@@ -2177,6 +2188,7 @@ function openLessonAddModal(){
     <div class="ff"><div class="fl">회차</div><input class="fi" id="lno" value="${nxt}"></div>
     <div class="ff"><div class="fl">수업일 *</div><input class="fi" type="date" id="ldt"></div>
     <div class="ff"><div class="fl">숙제 완료도</div><select class="fsel" id="lrt"><option>100%</option><option>80%</option><option>60%</option><option>40%</option><option>0%</option></select></div>
+    <div class="ff"><div class="fl">🕒 지각 여부</div><select class="fsel" id="llate">${lateOpts('')}</select></div>
     ${showAtt?`<div class="ff"><div class="fl">수업 태도</div>
       <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px" id="attSel">
         ${ATTS.map((o,i)=>`<span class="att ${i===0?o.c:'a-no'}" style="cursor:pointer" data-att="${o.k}" onclick="selAtt(this)">${o.i} ${o.k}</span>`).join('')}
@@ -2207,7 +2219,7 @@ function saveLR(nm){
   if(!gv('ldt')){toast('수업일을 입력하세요');return;}
   const attEl=document.querySelector('#attSel .att:not(.a-no)');const att=attEl?.dataset.att||null;
   if(!DB.lessons[nm])DB.lessons[nm]={period:'',attend:'',summary:'',goal:'',rows:[]};
-  const row={no:gv('lno'),date:gv('ldt'),content:gv('lcon'),hw:gv('lhw'),rate:gv('lrt'),word:tn(gv('lw')),baek:tn(gv('lb')),dan:tn(gv('ld')),rev:tn(gv('lr')),att,tnote:gv('ltn'),note:gv('lnote')};
+  const row={no:gv('lno'),date:gv('ldt'),content:gv('lcon'),hw:gv('lhw'),rate:gv('lrt'),word:tn(gv('lw')),baek:tn(gv('lb')),dan:tn(gv('ld')),rev:tn(gv('lr')),att,tnote:gv('ltn'),note:gv('lnote'),late:gv('llate')||''};
   DB.lessons[nm].rows.push(row);
   if(gv('lsum'))DB.lessons[nm].summary=gv('lsum');
   if(gv('lgoal'))DB.lessons[nm].goal=gv('lgoal');
@@ -2241,6 +2253,7 @@ function editLRow(nm,ri){
     <div class="ff"><div class="fl">회차</div><input class="fi" id="eno" value="${r.no||''}"></div>
     <div class="ff"><div class="fl">수업일</div><input class="fi" type="date" id="edt" value="${r.date||''}"></div>
     <div class="ff"><div class="fl">완료도</div><input class="fi" id="ert" value="${r.rate||''}"></div>
+    <div class="ff"><div class="fl">🕒 지각 여부</div><select class="fsel" id="elate">${lateOpts(r.late)}</select></div>
     <div class="ff"><div class="fl">수업 태도</div>
       <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px" id="eAttSel">
         ${ATTS.map(o=>`<span class="att ${r.att===o.k?o.c:'a-no'}" style="cursor:pointer" data-att="${o.k}" onclick="selEditAtt(this)">${o.i} ${o.k}</span>`).join('')}
@@ -2260,7 +2273,7 @@ function selEditAtt(el){document.querySelectorAll('#eAttSel .att').forEach(e=>e.
 function saveEditLR(nm,ri){
   const tn=v=>v===''?null:v?Number(v):null;
   const attEl=document.querySelector('#eAttSel .att:not(.a-no)');
-  Object.assign(DB.lessons[nm].rows[ri],{no:gv('eno'),date:gv('edt'),content:gv('econ'),hw:gv('ehw'),rate:gv('ert'),word:tn(gv('ew')),baek:tn(gv('eb')),dan:tn(gv('ed')),rev:tn(gv('er')),att:attEl?.dataset.att||DB.lessons[nm].rows[ri].att||null,tnote:gv('etn'),note:gv('enote')});
+  Object.assign(DB.lessons[nm].rows[ri],{no:gv('eno'),date:gv('edt'),content:gv('econ'),hw:gv('ehw'),rate:gv('ert'),word:tn(gv('ew')),baek:tn(gv('eb')),dan:tn(gv('ed')),rev:tn(gv('er')),att:attEl?.dataset.att||DB.lessons[nm].rows[ri].att||null,tnote:gv('etn'),note:gv('enote'),late:gv('elate')||''});
   // 성적카드 자동 연동 (틀린수·점수 → 통합·홈 성적카드·그래프 자동 반영)
   const st=DB.students.find(s=>s.name===nm);const tab=st?.stype||'mid';const db=tab==='mid'?DB.scMid:DB.scHigh;
   if(!db[nm]){const ff=getCfgFields(tab);db[nm]={rows:ff.map(f=>({label:f.label,dir:f.dir,vals:[null,null,null,null,null,null,null,null]}))};}
