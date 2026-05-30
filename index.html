@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: 2026-05-28-noarrows -->
+<!-- build: 2026-05-28-alwayslogout -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1302,18 +1302,11 @@ async function cloudGetTeachers(){
 function getInviteCode(){ return currentUser?.invite_code || ''; }
 
 window.addEventListener('DOMContentLoaded', async ()=>{
-  // 모바일(휴대폰/태블릿): 링크로 접속하면 항상 로그아웃 상태로 시작(보안).
-  //   - scope:'local' → 이 기기 세션만 지움. 데스크톱(원장님 PC) 로그인에는 영향 없음.
-  // 데스크톱: 저장된 세션이 있으면 자동 로그인(같은 기기에서 새로고침해도 유지).
-  const isMobile = /Android|iPhone|iPad|iPod|Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent||'');
-  if(isMobile){
-    try{ await sb.auth.signOut({scope:'local'}); }catch(e){}
-    showAuthScreen();
-    return;
-  }
-  const {data:{session}} = await sb.auth.getSession();
-  if(session) await loadUserProfile();
-  else showAuthScreen();
+  // 보안: 모든 기기에서 페이지 열 때마다 무조건 로그아웃 상태로 시작.
+  //  - scope:'local' → 이 기기/이 브라우저의 세션만 지움. 다른 기기 로그인엔 영향 없음.
+  //  - 링크/북마크 클릭, 새로고침 모두 로그인 창부터 표시.
+  try{ await sb.auth.signOut({scope:'local'}); }catch(e){}
+  showAuthScreen();
 });
 sb.auth.onAuthStateChange((event, session)=>{
   // ⚠️ 초기 로드/세션없음(INITIAL_SESSION)에 새로고침하면 무한 반복됨 → 절대 reload 금지
