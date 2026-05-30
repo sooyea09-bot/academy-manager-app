@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: 2026-05-28-alwayslogout -->
+<!-- build: 2026-05-28-aifix -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -2731,11 +2731,14 @@ async function genKakaoConsult(){
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
         system:sys,messages:[{role:'user',content:`다음 학생 데이터를 바탕으로 학부모 상담 카카오 문자를 작성해주세요:\n\n${ctx}`}]})
     });
-    const data=await res.json();
-    const ans=data.content?.[0]?.text||'';
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error((data&&data.error)||'API 응답 오류 ('+res.status+')');
+    const ans=data.content?.[0]?.text;
+    if(!ans) throw new Error('AI 응답이 비어 있습니다. 잠시 후 다시 시도해주세요.');
     loadEl.style.display='none';textEl.style.display='block';
     textEl.value=ans;
   }catch(e){
+    console.error('genKakaoConsult error:',e);
     // API 미연결 시 기본 템플릿 생성
     const st=DB.students.find(s=>s.name===nm);
     const ld=DB.lessons[nm];
@@ -2767,8 +2770,9 @@ async function genKakaoConsult(){
 
 감사합니다! 궁금한 점은 언제든지 연락 주세요.`;
     loadEl.style.display='none';textEl.style.display='block';
-    textEl.value=tmpl;
-    toast('📝 기본 템플릿으로 생성되었습니다 (API 연결 시 AI 분석 가능)');
+    const errMsg=String(e&&e.message||e);
+    textEl.value=`⚠️ AI 자동 생성 실패: ${errMsg}\n→ 아래 기본 템플릿을 수정해서 사용하세요.\n\n${tmpl}`;
+    toast('⚠️ AI 생성 실패 — 기본 템플릿 표시 (오류: '+errMsg.slice(0,60)+')');
   }
 }
 function regenConsult(){genKakaoConsult();}
@@ -3195,11 +3199,19 @@ ${studentCtx}
   
   try{
     const res=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,system:sys,messages:[{role:'user',content:q}]})});
-    const data=await res.json();const ans=(data.content?.[0]?.text||'오류가 발생했습니다.').replace(/\n/g,'<br>');
+    const data=await res.json().catch(()=>({}));
+    let plain;
+    if(!res.ok){ plain='❌ API 오류 ('+res.status+'): '+((data&&data.error)||'서버에서 응답을 받지 못했습니다.'); }
+    else if(!data.content?.[0]?.text){ plain='❌ AI 응답이 비어 있습니다. 잠시 후 다시 시도해주세요.'; }
+    else { plain=data.content[0].text; }
+    const ans=plain.replace(/\n/g,'<br>');
     document.getElementById(tid)?.querySelector('.mb2')&&(document.getElementById(tid).querySelector('.mb2').innerHTML=ans);
-    if(isReport){document.getElementById('rpResult').innerHTML=`<div class="rpt-box">${ans.replace(/<br>/g,'\n')}</div><div style="margin-top:8px;display:flex;gap:6px"><button class="btn b-ghost b-sm" onclick="navigator.clipboard.writeText(document.querySelector('.rpt-box').textContent).then(()=>toast('📋 복사완료!'))">📋 복사</button></div>`;}
+    if(isReport){document.getElementById('rpResult').innerHTML=`<div class="rpt-box">${plain.replace(/</g,'&lt;')}</div><div style="margin-top:8px;display:flex;gap:6px"><button class="btn b-ghost b-sm" onclick="navigator.clipboard.writeText(document.querySelector('.rpt-box').textContent).then(()=>toast('📋 복사완료!'))">📋 복사</button></div>`;}
   }catch(e){
-    const el=document.getElementById(tid);if(el)el.querySelector('.mb2').innerHTML='<i style="color:var(--ink3)">API 연동 시 실제 분석이 가능합니다. 현재 데모 모드입니다.</i>';
+    console.error('sendAI error:',e);
+    const errMsg='❌ 네트워크 오류: '+String(e&&e.message||e);
+    const el=document.getElementById(tid);if(el)el.querySelector('.mb2').innerHTML=errMsg;
+    if(isReport){document.getElementById('rpResult').innerHTML='<div class="rpt-box" style="color:var(--red)">'+errMsg+'</div>';}
   }
   msgs.scrollTop=msgs.scrollHeight;
 }
