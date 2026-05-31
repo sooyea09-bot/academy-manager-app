@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: 2026-05-28-aifix -->
+<!-- build: 2026-05-28-attach -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -540,7 +540,7 @@ tr:hover .ta{opacity:1}
 <div class="toast" id="toast"></div>
 <div class="att-pop" id="attPop" style="display:none"></div>
 
-<div class="mbg" id="mbg" onclick="if(event.target===this)closeMod()">
+<div class="mbg" id="mbg">
   <div class="modal">
     <div class="mh"><h3 id="mT"></h3><button class="xb" onclick="closeMod()">✕</button></div>
     <div class="mb" id="mB"></div>
@@ -1302,10 +1302,10 @@ async function cloudGetTeachers(){
 function getInviteCode(){ return currentUser?.invite_code || ''; }
 
 window.addEventListener('DOMContentLoaded', async ()=>{
-  // 보안: 모든 기기에서 페이지 열 때마다 무조건 로그아웃 상태로 시작.
-  //  - scope:'local' → 이 기기/이 브라우저의 세션만 지움. 다른 기기 로그인엔 영향 없음.
-  //  - 링크/북마크 클릭, 새로고침 모두 로그인 창부터 표시.
-  try{ await sb.auth.signOut({scope:'local'}); }catch(e){}
+  // 보안: 페이지 열 때마다 로그인 화면 표시. 저장된 세션은 자동으로 복원하지 않음.
+  //  - signOut을 호출하지 않아 다른 탭의 로그인 세션에는 영향 없음.
+  //  - 사용자가 로그인 폼을 다시 채워서 명시적으로 로그인해야 함.
+  //  - 작업 중인 탭이 다른 탭의 페이지 로드 때문에 갑자기 로그아웃되는 문제 방지.
   showAuthScreen();
 });
 sb.auth.onAuthStateChange((event, session)=>{
@@ -2984,6 +2984,78 @@ function cycleConsultStatus(id){
   if(document.getElementById('page-consult')?.classList.contains('on'))renderConsult();
   toast('→ '+c.status);
 }
+/* ═══ 상담 첨부파일 (이미지·PDF, base64 저장) ═══ */
+function _fmtSize(b){if(b<1024)return b+'B';if(b<1048576)return (b/1024).toFixed(0)+'KB';return (b/1048576).toFixed(1)+'MB';}
+function _fileIcon(t){if(!t)return '📄';if(t.startsWith('image/'))return '🖼';if(t==='application/pdf')return '📕';return '📄';}
+function pickConsultFiles(id){
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='image/*,application/pdf'; inp.multiple=true;
+  inp.onchange=async e=>{
+    const c=DB.consults.find(x=>x.id===id); if(!c)return;
+    if(!c.files)c.files=[];
+    const MAX=3*1024*1024, MAX_COUNT=10;
+    let added=0, skipped=[];
+    for(const f of e.target.files){
+      if(c.files.length>=MAX_COUNT){skipped.push(f.name+'(개수초과)');break;}
+      if(f.size>MAX){skipped.push(f.name+'(3MB초과)');continue;}
+      try{
+        const data=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});
+        c.files.push({name:f.name,type:f.type||'application/octet-stream',size:f.size,data:data,addedAt:new Date().toISOString()});
+        added++;
+      }catch(err){skipped.push(f.name+'(읽기실패)');}
+    }
+    save();
+    if(added)toast('✅ '+added+'개 첨부됨');
+    if(skipped.length)toast('⚠️ 건너뜀: '+skipped.join(', '));
+    openConsultDetail(id);
+  };
+  inp.click();
+}
+function viewConsultFile(id,idx){
+  const c=DB.consults.find(x=>x.id===id);
+  const f=c?.files?.[idx]; if(!f)return;
+  let viewer;
+  if((f.type||'').startsWith('image/')){
+    viewer=`<img src="${f.data}" alt="" style="max-width:100%;max-height:70vh;display:block;margin:0 auto;border:1px solid var(--bd);border-radius:6px">`;
+  } else if(f.type==='application/pdf'){
+    viewer=`<iframe src="${f.data}" style="width:100%;height:70vh;border:1px solid var(--bd);border-radius:6px" title="PDF 미리보기"></iframe>`;
+  } else {
+    viewer=`<div style="padding:30px;text-align:center;color:var(--ink3)">미리보기를 제공하지 않는 파일 형식입니다. 다운로드 버튼을 누르세요.</div>`;
+  }
+  const meta=`<div style="font-size:12px;color:var(--ink3);margin-bottom:8px">${_fileIcon(f.type)} ${f.name} · ${_fmtSize(f.size)}</div>`;
+  openMod(f.name, meta+viewer,
+    `<a class="btn b-ghost" download="${(f.name||'file').replace(/["<>]/g,'')}" href="${f.data}">📥 다운로드</a>
+     <button class="btn b-ink" onclick="openConsultDetail(${id})">← 뒤로</button>`);
+}
+function deleteConsultFile(id,idx){
+  if(!confirm('이 첨부파일을 삭제하시겠습니까?'))return;
+  const c=DB.consults.find(x=>x.id===id);
+  if(!c?.files)return;
+  c.files.splice(idx,1);
+  save(); toast('🗑 삭제됨');
+  openConsultDetail(id);
+}
+function _filesPanel(c){
+  const files=c.files||[];
+  const items=files.length?files.map((f,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg2);margin-bottom:6px">
+      <div style="font-size:20px">${_fileIcon(f.type)}</div>
+      <div style="flex:1;min-width:0;cursor:pointer" onclick="viewConsultFile(${c.id},${i})" title="클릭: 보기">
+        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(f.name||'파일').replace(/</g,'&lt;')}</div>
+        <div style="font-size:10px;color:var(--ink3)">${_fmtSize(f.size)}</div>
+      </div>
+      <button class="btn b-ghost b-xs" onclick="viewConsultFile(${c.id},${i})">보기</button>
+      <button class="btn b-red b-xs" onclick="deleteConsultFile(${c.id},${i})">✕</button>
+    </div>`).join(''):'<div style="padding:14px;text-align:center;color:var(--ink3);font-size:12px;border:1px dashed var(--bd);border-radius:8px">첨부된 파일 없음</div>';
+  return `<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--bd)">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="color:var(--ink3);font-weight:700;flex:1">📎 첨부파일 <span style="font-size:11px;color:var(--ink4);font-weight:500">(이미지·PDF, 1개당 최대 3MB, 최대 10개)</span></div>
+      <button class="btn b-blue b-sm" onclick="pickConsultFiles(${c.id})">＋ 파일 추가</button>
+    </div>
+    ${items}
+  </div>`;
+}
+
 function openConsultDetail(id){
   const c=DB.consults.find(x=>x.id===id);if(!c)return;
   const body=`<div style="font-size:13px;line-height:1.9">
@@ -3000,6 +3072,7 @@ function openConsultDetail(id){
       <div style="color:var(--ink3);font-weight:700;margin-bottom:6px">📝 상담 메모 / 특이사항</div>
       <div style="white-space:pre-wrap;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:14px;min-height:90px">${c.note||'(메모 내용이 없습니다)'}</div>
     </div>
+    ${_filesPanel(c)}
   </div>`;
   openMod('상담 기록 상세',body,`<button class="btn b-ghost" onclick="editCon(${c.id})">수정</button><button class="btn b-ink" onclick="closeMod()">닫기</button>`);
 }
