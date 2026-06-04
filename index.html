@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: 2026-05-28-attach -->
+<!-- build: 2026-05-31-waitlist -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -589,6 +589,7 @@ tr:hover .ta{opacity:1}
     <div class="sb-sec">
       <span class="sb-lbl">운영</span>
       <div class="ni" data-p="consult"><span class="ni-ic">💬</span>상담 기록</div>
+      <div class="ni" data-p="waitlist"><span class="ni-ic">⏳</span>대기 학생</div>
       <div class="ni" data-p="settings"><span class="ni-ic">⚙️</span>설정</div>
       <div class="ni" data-p="admin" id="navAdmin" style="display:none"><span class="ni-ic">🛡️</span>관리자</div>
     </div>
@@ -868,6 +869,18 @@ tr:hover .ta{opacity:1}
   <div class="card"><div class="tw"><table>
     <thead><tr><th>상담일</th><th>학생명</th><th>학년</th><th>학교</th><th>유입경로</th><th>레벨</th><th>특이사항</th><th>등록여부</th><th>담당</th><th></th></tr></thead>
     <tbody id="conTb"></tbody>
+  </table></div></div>
+</div>
+
+<!-- ═══════════════ WAITLIST (대기 학생) ═══════════════ -->
+<div class="page" id="page-waitlist">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div class="g4" id="waitStats" style="flex:1;margin-right:16px"></div>
+    <button class="btn b-blue b-sm" onclick="openWaitModal()">+ 대기 학생 추가</button>
+  </div>
+  <div class="card"><div class="tw"><table>
+    <thead><tr><th style="width:64px">대기 번호</th><th>이름</th><th>학년</th><th>수업 유형</th><th>등록일</th><th>특이사항</th><th>상태</th><th></th></tr></thead>
+    <tbody id="waitTb"></tbody>
   </table></div></div>
 </div>
 
@@ -1225,7 +1238,7 @@ async function loadAllFromCloud(){
     }else{
       // 클라우드에 아직 없음(신규 가입자) → 예시/데모(다른 사람 학생) 데이터 없이 '빈 상태'로 시작
       if(typeof DB !== 'undefined'){
-        const EMPTY = {students:[],scMid:{},scHigh:{},attendance:[],exams:[],todos:[],consults:[],lessons:{},cfg:JSON.parse(JSON.stringify((typeof INIT!=='undefined'&&INIT.cfg)?INIT.cfg:{}))};
+        const EMPTY = {students:[],scMid:{},scHigh:{},attendance:[],exams:[],todos:[],consults:[],waitlist:[],lessons:{},cfg:JSON.parse(JSON.stringify((typeof INIT!=='undefined'&&INIT.cfg)?INIT.cfg:{}))};
         for(const k of Object.keys(DB)){ delete DB[k]; }
         Object.assign(DB, EMPTY);
       }
@@ -1632,14 +1645,14 @@ function openAttPop(nm,ri,el){
 function setAtt(nm,ri,v){if(DB.lessons[nm])DB.lessons[nm].rows[ri].att=v||null;save();document.getElementById('attPop').style.display='none';showLesson(nm);}
 
 /* ═══════════════ NAVIGATION ═══════════════ */
-const PT={home:'홈 대시보드',ai:'AI 조교 & 상담',students:'학생 관리',scores:'성적 카드',attendance:'출석부',lesson:'수업 진도+피드백',unified:'통합',exam:'내신 일정',todo:'수업준비 TODO',consult:'상담 기록',settings:'설정',admin:'관리자'};
+const PT={home:'홈 대시보드',ai:'AI 조교 & 상담',students:'학생 관리',scores:'성적 카드',attendance:'출석부',lesson:'수업 진도+피드백',unified:'통합',exam:'내신 일정',todo:'수업준비 TODO',consult:'상담 기록',waitlist:'대기 학생',settings:'설정',admin:'관리자'};
 function goPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   document.getElementById('page-'+id)?.classList.add('on');
   document.getElementById('pgT').textContent=PT[id]||id;
   document.querySelectorAll('.ni').forEach(n=>{if(n.dataset.p===id)n.classList.add('on');});
-  ({home:renderHome,students:renderStudents,scores:renderScores,attendance:renderAttend,lesson:renderLesson,unified:renderUnifiedInit,exam:renderExam,todo:renderTodo,consult:renderConsult,ai:renderAI,settings:renderSettings,admin:renderAdmin})[id]?.();
+  ({home:renderHome,students:renderStudents,scores:renderScores,attendance:renderAttend,lesson:renderLesson,unified:renderUnifiedInit,exam:renderExam,todo:renderTodo,consult:renderConsult,waitlist:renderWaitlist,ai:renderAI,settings:renderSettings,admin:renderAdmin})[id]?.();
 }
 function openMod(t,b,f){document.getElementById('mT').textContent=t;document.getElementById('mB').innerHTML=b;document.getElementById('mF').innerHTML=f;document.getElementById('mbg').classList.add('on');}
 function closeMod(){document.getElementById('mbg').classList.remove('on');}
@@ -3093,6 +3106,94 @@ function openConsultModal(c={}){openMod(c.id?'상담 수정':'상담 추가',cfF
 function editCon(id){openConsultModal(DB.consults.find(c=>c.id===id)||{});}
 function saveCon(id){if(!gv('cdt')||!gv('cnm')){toast('상담일과 학생명은 필수입니다');return;}const o={date:gv('cdt'),name:gv('cnm'),grade:gv('cg'),school:gv('csc'),route:gv('crt'),student:gv('cstu'),parent:gv('cpar'),level:gv('clv'),note:gv('cnt'),status:gv('cst'),manager:gv('cmg')};if(id)Object.assign(DB.consults.find(c=>c.id===id),o);else DB.consults.push({id:nid(DB.consults),...o});save();closeMod();renderConsult();}
 function delCon(id){if(!confirm('삭제?'))return;DB.consults=DB.consults.filter(c=>c.id!==id);save();renderConsult();}
+
+/* ═══════════════ WAITLIST (대기 학생) ═══════════════ */
+function renderWaitlist(){
+  if(!DB.waitlist)DB.waitlist=[];
+  const list=[...DB.waitlist].sort((a,b)=>(Number(a.no)||9999)-(Number(b.no)||9999));
+  const total=list.length;
+  const waiting=list.filter(w=>(w.status||'대기중')==='대기중').length;
+  const on=list.filter(w=>w.type==='온라인').length;
+  const off=list.filter(w=>w.type==='오프라인').length;
+  document.getElementById('waitStats').innerHTML=`
+    <div class="stat"><div class="sl">총 대기</div><div class="sv2">${total}</div></div>
+    <div class="stat"><div class="sl">대기 중</div><div class="sv2" style="color:var(--amber)">${waiting}</div></div>
+    <div class="stat"><div class="sl">오프라인</div><div class="sv2">${off}</div></div>
+    <div class="stat"><div class="sl">온라인</div><div class="sv2">${on}</div></div>`;
+  document.getElementById('waitTb').innerHTML=list.length?list.map(w=>`<tr onclick="openWaitDetail(${w.id})" style="cursor:pointer" title="클릭: 상세 보기">
+    <td style="font-family:var(--M);font-weight:700;text-align:center">${w.no||'—'}</td>
+    <td><b>${w.name||'—'}</b></td>
+    <td>${w.grade||'—'}</td>
+    <td>${w.type==='온라인'?'💻 온라인':(w.type==='오프라인'?'🏫 오프라인':'—')}</td>
+    <td style="font-family:var(--M);font-size:11px">${w.date||'—'}</td>
+    <td style="color:var(--ink3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${w.note||'—'}</td>
+    <td onclick="event.stopPropagation();cycleWaitStatus(${w.id})" title="클릭: 상태 변경"><span class="badge ${(w.status||'대기중')==='등록완료'?'b-G':(w.status||'대기중')==='취소'?'b-R':'b-A'}" style="cursor:pointer">${w.status||'대기중'}</span></td>
+    <td><div class="ta"><button class="btn b-ghost b-xs" onclick="event.stopPropagation();editWait(${w.id})">수정</button><button class="btn b-red b-xs" onclick="event.stopPropagation();delWait(${w.id})">삭제</button></div></td>
+  </tr>`).join(''):'<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--ink3);font-size:13px">대기 학생 없음. 우측 상단 "+ 대기 학생 추가" 버튼으로 등록하세요.</td></tr>';
+}
+function nextWaitNo(){
+  const used=(DB.waitlist||[]).map(w=>Number(w.no)).filter(n=>!isNaN(n));
+  return used.length?Math.max(...used)+1:1;
+}
+function openWaitDetail(id){
+  const w=DB.waitlist.find(x=>x.id===id);if(!w)return;
+  const body=`<div style="font-size:13px;line-height:1.9">
+    <div style="font-size:17px;font-weight:800;margin-bottom:2px">${w.name||'—'} <span style="font-size:12px;font-weight:600;color:var(--ink3)">${w.grade||''}</span></div>
+    <div style="margin-bottom:12px"><span class="badge b-dk">대기 번호 ${w.no||'—'}</span> <span class="badge b-dk" style="margin-left:4px">${w.type==='온라인'?'💻 온라인':(w.type==='오프라인'?'🏫 오프라인':'유형 미지정')}</span> <span class="badge ${(w.status||'대기중')==='등록완료'?'b-G':(w.status||'대기중')==='취소'?'b-R':'b-A'}" style="margin-left:4px">${w.status||'대기중'}</span></div>
+    <div style="display:grid;grid-template-columns:100px 1fr;gap:6px 10px">
+      <div style="color:var(--ink3);font-weight:700">등록일</div><div>${w.date||'—'}</div>
+      <div style="color:var(--ink3);font-weight:700">학생 연락처</div><div>${w.phone||'—'}</div>
+      <div style="color:var(--ink3);font-weight:700">학부모 연락처</div><div>${w.parent||'—'}</div>
+    </div>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--bd)">
+      <div style="color:var(--ink3);font-weight:700;margin-bottom:6px">📝 특이사항 / 메모</div>
+      <div style="white-space:pre-wrap;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:14px;min-height:70px">${w.note||'(메모 없음)'}</div>
+    </div>
+  </div>`;
+  openMod('대기 학생 상세',body,`<button class="btn b-ghost" onclick="editWait(${w.id})">수정</button><button class="btn b-ink" onclick="closeMod()">닫기</button>`);
+}
+function wfF(w={}){
+  const today=new Date().toISOString().slice(0,10);
+  return `<div class="fg">
+    <div class="ff"><div class="fl">대기 번호 *</div><input class="fi" type="number" id="wno" value="${w.no??nextWaitNo()}"></div>
+    <div class="ff"><div class="fl">이름 *</div><input class="fi" id="wnm" value="${w.name||''}" placeholder="학생 이름"></div>
+    <div class="ff"><div class="fl">학년</div><input class="fi" id="wgr" value="${w.grade||''}" placeholder="예: 중3 / 고1"></div>
+    <div class="ff"><div class="fl">수업 유형 *</div><select class="fsel" id="wtype">
+      <option value="오프라인" ${(w.type||'오프라인')==='오프라인'?'selected':''}>🏫 오프라인 수업</option>
+      <option value="온라인" ${w.type==='온라인'?'selected':''}>💻 온라인 수업</option>
+    </select></div>
+    <div class="ff"><div class="fl">등록일</div><input class="fi" type="date" id="wdt" value="${w.date||today}"></div>
+    <div class="ff"><div class="fl">상태</div><select class="fsel" id="wst">
+      <option ${(w.status||'대기중')==='대기중'?'selected':''}>대기중</option>
+      <option ${w.status==='등록완료'?'selected':''}>등록완료</option>
+      <option ${w.status==='취소'?'selected':''}>취소</option>
+    </select></div>
+    <div class="ff"><div class="fl">학생 연락처</div><input class="fi" id="wph" value="${w.phone||''}" placeholder="010-…"></div>
+    <div class="ff"><div class="fl">학부모 연락처</div><input class="fi" id="wpa" value="${w.parent||''}" placeholder="010-…"></div>
+    <div class="ff fs2"><div class="fl">특이사항 / 메모</div><textarea class="fta" id="wnt" rows="3" placeholder="원하는 시간대, 인접 학생, 상담 메모 등">${w.note||''}</textarea></div>
+  </div>`;
+}
+function openWaitModal(w={}){
+  openMod(w.id?'대기 학생 수정':'대기 학생 추가',wfF(w),`<button class="btn b-ghost" onclick="closeMod()">취소</button><button class="btn b-blue" onclick="saveWait(${w.id||0})">저장</button>`);
+}
+function editWait(id){openWaitModal(DB.waitlist.find(w=>w.id===id)||{});}
+function saveWait(id){
+  if(!gv('wnm')){toast('이름을 입력하세요');return;}
+  const o={no:Number(gv('wno'))||nextWaitNo(),name:gv('wnm'),grade:gv('wgr'),type:gv('wtype')||'오프라인',date:gv('wdt'),status:gv('wst')||'대기중',phone:gv('wph'),parent:gv('wpa'),note:gv('wnt')};
+  if(!DB.waitlist)DB.waitlist=[];
+  if(id)Object.assign(DB.waitlist.find(w=>w.id===id),o);
+  else DB.waitlist.push({id:nid(DB.waitlist),...o});
+  save();closeMod();renderWaitlist();
+}
+function delWait(id){if(!confirm('대기 학생을 삭제하시겠습니까?'))return;DB.waitlist=DB.waitlist.filter(w=>w.id!==id);save();renderWaitlist();}
+function cycleWaitStatus(id){
+  const w=DB.waitlist.find(x=>x.id===id);if(!w)return;
+  const arr=['대기중','등록완료','취소'];
+  const i=arr.indexOf(w.status||'대기중');
+  w.status=arr[(i+1)%arr.length];
+  save();renderWaitlist();
+  toast('→ '+w.status);
+}
 
 /* ═══════════════ AI 조교 ═══════════════ */
 function renderAI(){
