@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: 2026-05-31-waitlist -->
+<!-- build: 2026-05-31-waithome -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -638,6 +638,12 @@ tr:hover .ta{opacity:1}
     <div class="card">
       <div class="ch"><span>💬</span><h3>최근 상담</h3></div>
       <div class="tw hscroll"><table><thead><tr><th>학생</th><th>학교</th><th>경로</th><th>레벨</th><th>등록</th></tr></thead><tbody id="hConsult"></tbody></table></div>
+    </div>
+  </div>
+  <div style="margin-top:18px">
+    <div class="card">
+      <div class="ch"><span>⏳</span><h3>대기 학생</h3><span class="sub">대기 번호순</span></div>
+      <div class="tw hscroll"><table><thead><tr><th style="width:64px">번호</th><th>이름</th><th>학년</th><th>수업 유형</th><th>등록일</th><th>특이사항</th><th>상태</th></tr></thead><tbody id="hWait"></tbody></table></div>
     </div>
   </div>
 </div>
@@ -1695,6 +1701,25 @@ function renderHome(){
     return`<tr><td><b>${nm}</b></td><td><span class="badge ${isMid?'b-mid':'b-high'}">${isMid?'초중':'고등'}</span></td><td>${scV(last[0],fields[0]?.dir||'down')}</td><td>${scV(last[1],fields[1]?.dir||'down')}</td><td>${scV(last[2],fields[2]?.dir||'up')}</td><td>${scV(last[3],fields[3]?.dir||'up')}</td><td>${t}</td></tr>`;
   }).join('');
   document.getElementById('hConsult').innerHTML=[...DB.consults].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)).map(c=>`<tr><td onclick="openConsultDetail(${c.id})" style="cursor:pointer" title="클릭: 상세 보기"><b>${c.name}</b></td><td>${c.school}</td><td><span class="badge b-dk">${c.route}</span></td><td>${c.level}</td><td onclick="cycleConsultStatus(${c.id})" style="cursor:pointer" title="클릭: 등록/미등록 변경">${stB(c.status)}</td></tr>`).join('');
+  // 대기 학생 — 번호순(대기중 우선, 그 다음 등록완료/취소)
+  const hWait=document.getElementById('hWait');
+  if(hWait){
+    if(!DB.waitlist)DB.waitlist=[];
+    const wlist=[...DB.waitlist].sort((a,b)=>{
+      const ar=(a.status||'대기중')==='대기중'?0:1, br=(b.status||'대기중')==='대기중'?0:1;
+      if(ar!==br)return ar-br;
+      return (Number(a.no)||9999)-(Number(b.no)||9999);
+    });
+    hWait.innerHTML=wlist.length?wlist.map(w=>`<tr onclick="openWaitDetail(${w.id})" style="cursor:pointer" title="클릭: 상세 보기">
+      <td style="font-family:var(--M);font-weight:700;text-align:center">${w.no||'—'}</td>
+      <td><b>${w.name||'—'}</b></td>
+      <td>${w.grade||'—'}</td>
+      <td>${w.type==='온라인'?'💻 온라인':(w.type==='오프라인'?'🏫 오프라인':'—')}</td>
+      <td style="font-family:var(--M);font-size:11px;color:var(--ink3)">${w.date||'—'}</td>
+      <td style="color:var(--ink3);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${w.note||'—'}</td>
+      <td onclick="event.stopPropagation();cycleWaitStatus(${w.id})" title="클릭: 상태 변경"><span class="badge ${(w.status||'대기중')==='등록완료'?'b-G':(w.status||'대기중')==='취소'?'b-R':'b-A'}" style="cursor:pointer">${w.status||'대기중'}</span></td>
+    </tr>`).join(''):'<tr><td colspan="7" style="padding:18px;text-align:center;color:var(--ink3);font-size:12px">대기 학생 없음</td></tr>';
+  }
 }
 
 /* ═══════════════ STUDENTS ═══════════════ */
