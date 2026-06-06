@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: 2026-05-31-waithome -->
+<!-- build: 2026-05-31-keepsession -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1074,6 +1074,7 @@ async function authLogin(){
   if(!email || !pw) return showAuthErr('이메일/비밀번호를 입력하세요');
   const {error} = await sb.auth.signInWithPassword({email, password:pw});
   if(error) return showAuthErr(error.message);
+  sessionStorage.setItem('tabAuthed','1'); // 이 탭에서 새로고침 시 세션 유지
   await loadUserProfile();
 }
 
@@ -1095,10 +1096,12 @@ async function authSignup(){
     showAuthErr('✅ 가입 신청 완료! 입력하신 이메일로 인증 메일을 보냈습니다. 메일 인증 후 원장님 승인이 완료되면 이용할 수 있어요.');
     return;
   }
+  sessionStorage.setItem('tabAuthed','1');
   await loadUserProfile();
 }
 
 async function doLogout(){
+  sessionStorage.removeItem('tabAuthed');
   await sb.auth.signOut();
   currentUser = null;
   location.reload();
@@ -1321,10 +1324,17 @@ async function cloudGetTeachers(){
 function getInviteCode(){ return currentUser?.invite_code || ''; }
 
 window.addEventListener('DOMContentLoaded', async ()=>{
-  // 보안: 페이지 열 때마다 로그인 화면 표시. 저장된 세션은 자동으로 복원하지 않음.
-  //  - signOut을 호출하지 않아 다른 탭의 로그인 세션에는 영향 없음.
-  //  - 사용자가 로그인 폼을 다시 채워서 명시적으로 로그인해야 함.
-  //  - 작업 중인 탭이 다른 탭의 페이지 로드 때문에 갑자기 로그아웃되는 문제 방지.
+  // 새 탭/링크 접속 시: 로그인 화면. (sessionStorage는 새 탭에선 비어 있음)
+  // 같은 탭에서 로그인 후 새로고침(F5)했을 때: tabAuthed 플래그가 살아있으므로 세션 자동 복원.
+  // sessionStorage는 탭 단위라서 다른 탭/창에 영향 없음.
+  const tabAuthed = sessionStorage.getItem('tabAuthed');
+  if(tabAuthed === '1'){
+    try{
+      const {data:{session}} = await sb.auth.getSession();
+      if(session){ await loadUserProfile(); return; }
+    }catch(e){}
+    sessionStorage.removeItem('tabAuthed');
+  }
   showAuthScreen();
 });
 sb.auth.onAuthStateChange((event, session)=>{
@@ -2120,7 +2130,7 @@ function showLesson(nm){
   if(showAtt)hd+=`<div style="justify-content:center;font-size:10.5px">수업 태도</div>`;
   if(showNote)hd+=`<div style="font-size:10.5px">특이사항</div>`;
   const scoreKeys=['word','baek','dan','rev','ext1','ext2'];
-  const body=ld.rows.map((r,ri)=>{
+  const body=sortLessonRows(ld.rows).map(({r,i:ri},dispI)=>{
     let row=`<div style="font-weight:700;font-family:var(--M);justify-content:center;color:var(--ink);padding:9px 8px 9px 16px;">${r.no}</div>`;
     row+=`<div style="color:var(--ink3);font-size:11px">${r.date?.slice(5)||''}${r.tnote?' 🧑‍🏫':''}${r.late?' '+lateBadge(r.late):''}</div>`;
     row+=`<div style="line-height:1.5;white-space:pre-wrap">${r.content||'—'}</div>`;
@@ -2129,7 +2139,7 @@ function showLesson(nm){
     scoreCols.forEach((f,fi)=>{const v=r[scoreKeys[fi]];row+=`<div style="justify-content:center">${scV(v,f.dir)}</div>`;});
     if(showAtt)row+=`<div style="justify-content:center" onclick="event.stopPropagation();openAttPop('${nm}',${ri},this)">${attB(r.att)}</div>`;
     if(showNote)row+=`<div style="font-size:11px;color:var(--ink3)">${r.note||'—'}</div>`;
-    return`<div class="lg-row" onclick="openLessonDetail('${nm}',${ri})" title="클릭: 상세 보기 / 수정" style="${gs};background:${ri%2?'rgba(245,243,238,.5)':''};cursor:pointer">${row}</div>`;
+    return`<div class="lg-row" onclick="openLessonDetail('${nm}',${ri})" title="클릭: 상세 보기 / 수정" style="${gs};background:${dispI%2?'rgba(245,243,238,.5)':''};cursor:pointer">${row}</div>`;
   }).join('');
   document.getElementById('lesBody').innerHTML=`<div class="lg-hd" style="${gs}">${hd}</div>`+body;
   document.getElementById('lesMeta').innerHTML=`
@@ -2279,8 +2289,31 @@ function milestoneTuition(i){
     `<button class="btn b-ghost" onclick="closeMod()">닫기</button>
      <button class="btn b-blue" onclick="(function(){const t=document.getElementById('tuitMsg').value;if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){toast('✅ 복사됨')}).catch(function(){toast('복사 실패')});}else{toast('복사 권한 없음')}})()">📋 복사</button>`);
 }
+// 회차 번호 파싱/매핑 도우미
+function parseRoundNum(no){ if(no==null)return 0; const m=String(no).match(/(\d+)/); return m?Number(m[1]):0; }
+function roundIdx(no){ const n=parseRoundNum(no); return (n>=1 && n<=8)?n-1:-1; }
+function roundOpts(used, current){
+  const u=new Set(used);
+  let out='';
+  for(let i=1;i<=8;i++){
+    const taken=u.has(i)&&i!==current;
+    out+=`<option value="${i}회" ${current===i?'selected':''} ${taken?'disabled':''}>${i}회${taken?' (사용중)':''}</option>`;
+  }
+  return out;
+}
+function nextAvailableRound(ld){
+  const used=(ld?.rows||[]).map(r=>parseRoundNum(r.no)).filter(n=>n>0);
+  for(let i=1;i<=8;i++){ if(!used.includes(i)) return i; }
+  return null;
+}
+function sortLessonRows(rows){
+  return [...rows].map((r,origIdx)=>({r:r,i:origIdx,_n:parseRoundNum(r.no)||9999})).sort((a,b)=>a._n-b._n);
+}
 function openLessonAddModal(){
-  const nm=document.getElementById('lesSel')?.value;const ld=DB.lessons[nm];const nxt=ld?`${ld.rows.length+1}회`:'1회';
+  const nm=document.getElementById('lesSel')?.value;const ld=DB.lessons[nm];
+  const usedRounds=(ld?.rows||[]).map(r=>parseRoundNum(r.no)).filter(n=>n>0);
+  const defRound=nextAvailableRound(ld);
+  if(defRound==null){toast('1~8회가 모두 입력되어 있어요. 기존 회차를 수정해주세요.');return;}
   const st=DB.students.find(s=>s.name===nm);const cfg=getCfg();
   const fields=getCfgFields(st?.stype||'mid');
   const showHw=cfg.hw!==false;const showAtt=cfg.att!==false;const showNote=cfg.note===true;
@@ -2288,7 +2321,7 @@ function openLessonAddModal(){
   const f2=fields[2]||{label:'단원(점수)',dir:'up'};const f3=fields[3]||{label:'복습(점수)',dir:'up'};
   openMod(`${nm} — 회차 추가`,`
   <div class="fg">
-    <div class="ff"><div class="fl">회차</div><input class="fi" id="lno" value="${nxt}"></div>
+    <div class="ff"><div class="fl">회차 *</div><select class="fsel" id="lno">${roundOpts(usedRounds, defRound)}</select></div>
     <div class="ff"><div class="fl">수업일 *</div><input class="fi" type="date" id="ldt"></div>
     <div class="ff"><div class="fl">숙제 완료도</div><select class="fsel" id="lrt"><option>100%</option><option>80%</option><option>60%</option><option>40%</option><option>0%</option></select></div>
     <div class="ff"><div class="fl">🕒 지각 여부</div><select class="fsel" id="llate">${lateOpts('')}</select></div>
@@ -2331,7 +2364,7 @@ function saveLR(nm){
   // 자동 연동: 성적카드 업데이트
   const st=DB.students.find(s=>s.name===nm);const tab=st?.stype||'mid';const db=tab==='mid'?DB.scMid:DB.scHigh;
   if(!db[nm])db[nm]={rows:[{label:'단어(틀린수)',dir:'down',vals:Array(8).fill(null)},{label:'백지(틀린수)',dir:'down',vals:Array(8).fill(null)},{label:tab==='mid'?'단원(점수)':'모의(총점)',dir:'up',vals:Array(8).fill(null)},{label:tab==='mid'?'복습(점수)':'미니(틀린수)',dir:tab==='mid'?'up':'down',vals:Array(8).fill(null)}]};
-  const ci=DB.lessons[nm].rows.length-1;if(ci<8){const sc=db[nm].rows;if(row.word!=null)sc[0].vals[ci]=row.word;if(row.baek!=null)sc[1].vals[ci]=row.baek;if(row.dan!=null)sc[2].vals[ci]=row.dan;if(row.rev!=null)sc[3].vals[ci]=row.rev;}
+  const ci=roundIdx(row.no);if(ci>=0){const sc=db[nm].rows;if(row.word!=null)sc[0].vals[ci]=row.word;if(row.baek!=null)sc[1].vals[ci]=row.baek;if(row.dan!=null)sc[2].vals[ci]=row.dan;if(row.rev!=null)sc[3].vals[ci]=row.rev;}
   save();closeMod();showLesson(nm);refreshDerived();
 }
 function openLessonEditList(){
@@ -2349,11 +2382,13 @@ function openLessonEditList(){
 }
 function editLRow(nm,ri){
   const r=DB.lessons[nm].rows[ri];
+  const eUsedRounds=(DB.lessons[nm]?.rows||[]).map(rr=>parseRoundNum(rr.no)).filter(n=>n>0);
+  const eCurRound=parseRoundNum(r.no);
   const st=DB.students.find(s=>s.name===nm);const efields=getCfgFields(st?.stype||'mid');
   const g0=efields[0]||{label:'단어(틀린수)',dir:'down'};const g1=efields[1]||{label:'백지(틀린수)',dir:'down'};
   const g2=efields[2]||{label:'단원(점수)',dir:'up'};const g3=efields[3]||{label:'복습(점수)',dir:'up'};
   openMod(`${r.no} 수정`,`<div class="fg">
-    <div class="ff"><div class="fl">회차</div><input class="fi" id="eno" value="${r.no||''}"></div>
+    <div class="ff"><div class="fl">회차 *</div><select class="fsel" id="eno">${roundOpts(eUsedRounds, eCurRound)}</select></div>
     <div class="ff"><div class="fl">수업일</div><input class="fi" type="date" id="edt" value="${r.date||''}"></div>
     <div class="ff"><div class="fl">완료도</div><input class="fi" id="ert" value="${r.rate||''}"></div>
     <div class="ff"><div class="fl">🕒 지각 여부</div><select class="fsel" id="elate">${lateOpts(r.late)}</select></div>
@@ -2380,7 +2415,7 @@ function saveEditLR(nm,ri){
   // 성적카드 자동 연동 (틀린수·점수 → 통합·홈 성적카드·그래프 자동 반영)
   const st=DB.students.find(s=>s.name===nm);const tab=st?.stype||'mid';const db=tab==='mid'?DB.scMid:DB.scHigh;
   if(!db[nm]){const ff=getCfgFields(tab);db[nm]={rows:ff.map(f=>({label:f.label,dir:f.dir,vals:[null,null,null,null,null,null,null,null]}))};}
-  if(ri<8){const r=DB.lessons[nm].rows[ri];const sc=db[nm].rows;if(sc[0])sc[0].vals[ri]=r.word;if(sc[1])sc[1].vals[ri]=r.baek;if(sc[2])sc[2].vals[ri]=r.dan;if(sc[3])sc[3].vals[ri]=r.rev;}
+  {const r=DB.lessons[nm].rows[ri];const ci=roundIdx(r.no);if(ci>=0){const sc=db[nm].rows;if(sc[0])sc[0].vals[ci]=r.word;if(sc[1])sc[1].vals[ci]=r.baek;if(sc[2])sc[2].vals[ci]=r.dan;if(sc[3])sc[3].vals[ci]=r.rev;}}
   save();closeMod();showLesson(nm);refreshDerived();
 }
 function delLRow(nm,ri){if(!confirm('삭제?'))return;DB.lessons[nm].rows.splice(ri,1);save();closeMod();showLesson(nm);}
@@ -2529,7 +2564,7 @@ function _buildUniReportHtml(nm){
   const scoreKeys=['word','baek','dan','rev','ext1','ext2'];
   const rows=ld.rows||[];
   if(rows.length){
-    rows.forEach((r,ri)=>{
+    sortLessonRows(rows).forEach(({r},ri)=>{
       const bg=ri%2?'#fafaf7':'#fff';
       out+=`<tr style="background:${bg}">
         <td style="border:1px solid #d0d4dc;padding:8px 4px;text-align:center;font-weight:700;font-size:11px;vertical-align:top">${_esc(r.no||(ri+1))}</td>
@@ -2857,7 +2892,7 @@ function renderUnified(nm){
   html+=`<div><div class="lg-hd" style="${gs}">${hd}</div>`;
   if(ld?.rows?.length){
     const scoreKeys=['word','baek','dan','rev','ext1','ext2'];
-    html+=ld.rows.map((r,ri)=>{
+    html+=sortLessonRows(ld.rows).map(({r},ri)=>{
       let row=`<div style="font-weight:700;font-family:var(--M);justify-content:center;color:var(--ink);padding:9px 8px 9px 16px;">${r.no}</div>`;
       row+=`<div style="color:var(--ink3);font-size:11px">${r.date?.slice(5)||''}${r.late?' '+lateBadge(r.late):''}</div>`;
       row+=`<div style="line-height:1.5;white-space:pre-wrap;font-size:12px">${r.content||'—'}</div>`;
