@@ -1829,6 +1829,11 @@ function clCard(cls,nm){
       <div style="width:90px"><div class="cl-lbl">점수</div><input class="fi" placeholder="38/40" value="${clEsc(r.wordS)}" oninput="clSet(${cid},'${d}','${en}','wordS',this.value)"></div>
     </div>
     <div style="display:flex;gap:4px">${chip('wordck','합격','단어 합격','#1A6B3C')}${chip('wordck','재시','재시험','#E03E3E')}</div>
+    <div><div class="cl-lbl">TEST 틀린 개수</div><div style="display:flex;gap:6px">
+      <div style="flex:1"><input class="fi" type="number" min="0" style="text-align:center;padding:5px 3px" placeholder="단어" value="${clEsc(r.tWord)}" oninput="clSet(${cid},'${d}','${en}','tWord',this.value)"></div>
+      <div style="flex:1"><input class="fi" type="number" min="0" style="text-align:center;padding:5px 3px" placeholder="백지" value="${clEsc(r.tBaek)}" oninput="clSet(${cid},'${d}','${en}','tBaek',this.value)"></div>
+      <div style="flex:1"><input class="fi" type="number" min="0" style="text-align:center;padding:5px 3px" placeholder="종합" value="${clEsc(r.tJong)}" oninput="clSet(${cid},'${d}','${en}','tJong',this.value)"></div>
+    </div><div style="font-size:9.5px;color:#aaa;margin-top:2px;display:flex;gap:6px"><span style="flex:1;text-align:center">단어</span><span style="flex:1;text-align:center">백지</span><span style="flex:1;text-align:center">종합</span></div></div>
     <div><div class="cl-lbl">수업 태도</div><div style="display:flex;gap:4px;flex-wrap:wrap">${chip('att','집중','집중O','#1A6B3C')}${chip('att','보통','보통','#C48A22')}${chip('att','산만','산만/집중X','#E03E3E')}${chip('att','졸음','졸음','#6a6a6a')}</div></div>
     <div><div class="cl-lbl">특이사항 · 전달사항 <span style="color:#3D6FFF;font-weight:600">(카톡에 전달)</span></div><textarea class="fta" style="min-height:40px" placeholder="학부모께 전달할 내용 (여러 줄 가능)" oninput="clSet(${cid},'${d}','${en}','memo',this.value)">${clEsc(r.memo)}</textarea></div>
   </div>`;
@@ -1855,6 +1860,8 @@ function clBuildMsg(cls,nm,target){
   const attS=({집중:'집중O',보통:'보통',산만:'집중X',졸음:'졸음'})[r.att]||'';
   const lm=String(r.lateMin||'').replace(/[^0-9]/g,'');
   const att2=r.attend?(r.attend==='지각'?('지각'+(lm?` ${lm}분`:'')):r.attend):'';
+  const tW=String(r.tWord||'').replace(/[^0-9]/g,''),tB=String(r.tBaek||'').replace(/[^0-9]/g,''),tJ=String(r.tJong||'').replace(/[^0-9]/g,'');
+  const testLines=()=>{const a=[];const f=(lb,n)=>{if(n!=='')a.push(`· ${lb}시험: ${n}개 틀림${n==='0'?' (만점! 🎉)':''}`);};f('단어',tW);f('백지',tB);f('종합문제',tJ);return a;};
   const pushLines=(val)=>{ String(val==null?'':val).replace(/\r/g,'').split('\n').map(x=>x.replace(/\s+$/,'')).filter(x=>x.trim()).forEach(x=>L.push(x)); };
   if(target==='parent'){
     L.push(`[엑설런스 영어] ${nm} 수업 안내 😊`);
@@ -1869,6 +1876,7 @@ function clBuildMsg(cls,nm,target){
     if(String(r.prog||'').trim()){ L.push('📌 오늘 수업 진도'); pushLines(r.prog); L.push(''); }
     if(String(r.hw||'').trim()){ L.push('✔️ 숙제'); pushLines(r.hw); L.push(''); }
     if(r.wordR||r.wordS){ const w=[oneline(r.wordR),oneline(r.wordS)].filter(Boolean).join(' / '); L.push(`🔤 단어시험: ${w}${r.wordck==='재시'?' (재시험 예정)':r.wordck==='합격'?' (합격)':''}`); }
+    { const tl=testLines(); if(tl.length){ L.push('📊 TEST 결과'); tl.forEach(x=>L.push(x)); L.push(''); } }
     if(String(r.memo||'').trim()){ L.push('📢 전달 사항'); pushLines(r.memo); L.push(''); }
     L.push('');
     L.push('가정에서도 숙제 확인 부탁드립니다. 감사합니다 🙏');
@@ -1881,6 +1889,7 @@ function clBuildMsg(cls,nm,target){
     if(String(r.prog||'').trim()){ L.push('📌 오늘 진도'); pushLines(r.prog); L.push(''); }
     if(String(r.hw||'').trim()){ L.push('✔️ 숙제'); pushLines(r.hw); L.push(''); }
     if(r.wordR) L.push(`🔤 다음 단어시험: ${oneline(r.wordR)}`);
+    { const tl=testLines(); if(tl.length){ L.push('📊 TEST 결과'); tl.forEach(x=>L.push(x)); } }
     if(attS) L.push(`🙂 수업 태도: ${attS}`);
     L.push('');
     L.push('숙제 꼭 해오기! 다음 시간에 만나요 💪');
