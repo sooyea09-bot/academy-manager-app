@@ -1855,7 +1855,7 @@ function clSyncToLesson(cid,date,nm){
   DB.lessons=DB.lessons||{};
   const snRaw=String(r.sess||'').replace(/\s*회차?\s*$/,'').trim();
   const key=snRaw?('S'+cid+'#'+snRaw):('D'+cid+'#'+date);
-  const findRow=(rows)=>rows?(rows.find(x=>x._clKey===key)||rows.find(x=>x.date===date&&!x._clKey)):null;
+  const findRow=(rows)=>{ if(!rows) return null; return rows.find(x=>x._clKey===key) || (snRaw?rows.find(x=>String(x.no||'').replace(/[^0-9]/g,'')===snRaw):null) || rows.find(x=>x.date===date&&!x._clKey); };
   const rows0=(DB.lessons[nm]&&DB.lessons[nm].rows)||null;
   let row=findRow(rows0);
   if(!has){ if(row&&row._clKey===key){ const i=rows0.indexOf(row); if(i>=0){ rows0.splice(i,1); save(); } } return; }
@@ -1880,8 +1880,10 @@ function clSyncToLesson(cid,date,nm){
     _clKey: key
   };
   if(row&&row._clKey&&row.hw&&!row.hwA){ row.hw=''; }
-  if(row){ Object.assign(row,data); }
-  else { rows.push(data); }
+  let target;
+  if(row){ Object.assign(row,data); target=row; }
+  else { rows.push(data); target=data; }
+  if(snRaw){ for(let i=rows.length-1;i>=0;i--){ if(rows[i]!==target && String(rows[i].no||'').replace(/[^0-9]/g,'')===snRaw) rows.splice(i,1); } }
   rows.sort((a,b)=>{const na=parseInt(String(a.no||'').replace(/[^0-9]/g,'')),nb=parseInt(String(b.no||'').replace(/[^0-9]/g,''));const va=isNaN(na)?9999:na,vb=isNaN(nb)?9999:nb;if(va!==vb)return va-vb;return String(a.date||'').localeCompare(String(b.date||''));});
 }
 function clSet(cid,date,nm,field,val){ clRec(cid,date,nm)[field]=val; clSyncToLesson(cid,date,nm); clSave(); }
