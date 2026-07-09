@@ -916,7 +916,8 @@ tr:hover .ta{opacity:1}
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
     <div id="clTabs" style="display:flex;gap:6px;flex-wrap:wrap"></div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-      <input type="date" class="fi" id="clDate" style="width:150px" onchange="clSetDate(this.value)">
+      <span style="font-size:12px;font-weight:700;color:#555">📅 수업 날짜</span>
+      <input type="date" class="fi" id="clDate" style="width:160px" onchange="clSetDate(this.value)">
       <button class="btn b-ghost b-sm" onclick="openTimetable()">📅 시간표</button>
       <button class="btn b-ghost b-sm" onclick="openClassSettings()">⚙️ 반 설정</button>
     </div>
@@ -1842,10 +1843,11 @@ function clBuildMsg(cls,nm,target){
   const oneline=v=>String(v||'').replace(/\n/g,' ').trim();
   const L=[];
   const ALWAYS='모르는 건 바로바로 질문하는 습관! 💪';
+  const md=(()=>{const p=String(curClassDate||'').split('-');if(p.length<3)return curClassDate||'';const dt=new Date(+p[0],+p[1]-1,+p[2]);const wd=isNaN(dt.getTime())?'':' ('+['일','월','화','수','목','금','토'][dt.getDay()]+')';return (+p[1])+'월 '+(+p[2])+'일'+wd;})();
   const fmt=(label,val)=>{ const raw=String(val==null?'':val).replace(/\r/g,'').replace(/\n{2,}/g,'\n').trim(); if(!raw) return; if(raw.indexOf('\n')>=0){ L.push(label); raw.split('\n').map(x=>x.trim()).filter(Boolean).forEach(x=>L.push(x)); } else { L.push(label+' '+raw); } };
   if(target==='parent'){
     L.push(`[엑설런스 영어] ${nm} 학생 어머니께 😊`);
-    L.push(`${curClassDate} 수업 내용 안내드립니다.`);
+    L.push(`📅 ${md} 수업 안내드립니다.`);
     L.push('');
     fmt('📖 오늘 나갈 진도:', r.prog);
     if(r.wordR||r.wordS){ const w=[oneline(r.wordR),oneline(r.wordS)].filter(Boolean).join(' / '); L.push(`🔤 단어시험: ${w}${r.wordck==='재시'?' (재시험 예정)':r.wordck==='합격'?' (합격)':''}`); }
@@ -1858,6 +1860,7 @@ function clBuildMsg(cls,nm,target){
     L.push(ALWAYS);
   }else{
     L.push(`[엑설런스 영어] ${nm} 오늘 수업 안내 ✏️`);
+    L.push(`📅 오늘 ${md} 수업`);
     L.push('');
     fmt('▫️ 오늘 진도:', r.prog);
     fmt('▫️ 숙제:', r.hw);
