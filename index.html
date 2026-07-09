@@ -1771,8 +1771,12 @@ function clPrevHw(cid,nm,date){
 function clSave(){ clearTimeout(_clTimer); _clTimer=setTimeout(()=>save(),1000); }
 function clSelClass(id){ curClassId=id; renderClassLive(); }
 function clSetDate(v){ curClassDate=v||clToday(); renderClassLive(); }
+function clBackfillLessons(){
+  if(!DB.classLog) return;
+  for(const cid in DB.classLog){ const bd=DB.classLog[cid]||{}; for(const date in bd){ const bn=bd[date]||{}; for(const nm in bn){ clSyncToLesson(parseInt(cid),date,nm); } } }
+}
 function renderClassLive(){
-  ensureClasses();
+  ensureClasses(); clBackfillLessons();
   if(!curClassDate) curClassDate=clToday();
   if(!curClassId || !DB.classes.find(c=>c.id===curClassId)) curClassId=(DB.classes[0]&&DB.classes[0].id)||null;
   document.getElementById('clTabs').innerHTML=DB.classes.map(c=>`<button class="sc-name-btn ${c.id===curClassId?'on':''}" onclick="clSelClass(${c.id})">${clEsc(c.name)} <span class="badge b-gray" style="margin-left:4px">${(c.members||[]).length}/${c.cap||0}</span></button>`).join('')||'<span style="color:#999;font-size:12px">반이 없습니다. 우측 ⚙️ 반 설정에서 추가하세요.</span>';
@@ -2577,7 +2581,7 @@ function syncAttendance(nm,date){
 
 /* ═══════════════ LESSON ═══════════════ */
 function renderLesson(){
-  ensureStudentRecords();
+  ensureStudentRecords(); if(typeof clBackfillLessons==='function') clBackfillLessons();
   const sel=document.getElementById('lesSel');if(!sel)return;
   const all=DB.students.map(s=>s.name);const cur=sel.value;
   sel.innerHTML=all.map(n=>`<option ${n===cur?'selected':''}>${n}</option>`).join('');
