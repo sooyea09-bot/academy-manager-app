@@ -1600,7 +1600,7 @@ const INIT = {
     midFields:[
       {label:'단어(틀린수)',dir:'down'},
       {label:'백지(틀린수)',dir:'down'},
-      {label:'단원(점수)',dir:'up'},
+      {label:'종합Test',dir:'down'},
       {label:'복습(점수)',dir:'up'},
     ],
     highFields:[
@@ -1657,6 +1657,7 @@ function save() {
 // 학생 리스트에 있는 모든 학생이 각 영역에 자동으로 등록되도록 보장한다.
 // (기존 데이터는 절대 지우지 않고, 빠진 학생만 새로 추가)
 function ensureStudentRecords(){
+  try{ if(DB&&DB.cfg&&DB.cfg.midFields&&DB.cfg.midFields[2]&&DB.cfg.midFields[2].label==='단원(점수)'){ DB.cfg.midFields[2].label='종합Test'; DB.cfg.midFields[2].dir='down'; } }catch(e){}
   if(!DB || !Array.isArray(DB.students)) return false;
   DB.scMid = DB.scMid || {};
   DB.scHigh = DB.scHigh || {};
@@ -1802,6 +1803,7 @@ function clRenderBoard(cls){
 function clCard(cls,nm){
   const st=DB.students.find(s=>s.name===nm)||{};
   const r=clRec(cls.id,curClassDate,nm);
+  const high=(st.stype==='high')||/고/.test(st.grade||'');
   const cid=cls.id, d=curClassDate, en=clEsc(nm);
   const prev=clPrevHw(cid,nm,d);
   const chip=(field,val,label,color)=>`<span data-chip data-color="${color}" class="cl-chip ${r[field]===val?'chip-on':''}" style="${r[field]===val?'--on:'+color:''}" onclick="clChip(this,${cid},'${d}','${en}','${field}','${val}')">${label}</span>`;
@@ -1834,17 +1836,53 @@ function clCard(cls,nm){
       <div style="flex:1"><input class="fi" type="number" min="0" style="text-align:center;padding:5px 3px" placeholder="백지" value="${clEsc(r.tBaek)}" oninput="clSet(${cid},'${d}','${en}','tBaek',this.value)"></div>
       <div style="flex:1"><input class="fi" type="number" min="0" style="text-align:center;padding:5px 3px" placeholder="종합" value="${clEsc(r.tJong)}" oninput="clSet(${cid},'${d}','${en}','tJong',this.value)"></div>
     </div><div style="font-size:9.5px;color:#aaa;margin-top:2px;display:flex;gap:6px"><span style="flex:1;text-align:center">단어</span><span style="flex:1;text-align:center">백지</span><span style="flex:1;text-align:center">종합</span></div></div>
+    ${high?`<div><div class="cl-lbl">모의고사 점수 <span style="color:#5A1E8A;font-weight:600">(고등)</span></div><input class="fi" type="number" placeholder="예: 130" value="${clEsc(r.mock)}" oninput="clSet(${cid},'${d}','${en}','mock',this.value)"></div>`:''}
     <div><div class="cl-lbl">수업 태도</div><div style="display:flex;gap:4px;flex-wrap:wrap">${chip('att','집중','집중O','#1A6B3C')}${chip('att','보통','보통','#C48A22')}${chip('att','산만','산만/집중X','#E03E3E')}${chip('att','졸음','졸음','#6a6a6a')}</div></div>
     <div><div class="cl-lbl">특이사항 · 전달사항 <span style="color:#3D6FFF;font-weight:600">(카톡에 전달)</span></div><textarea class="fta" style="min-height:40px" placeholder="학부모께 전달할 내용 (여러 줄 가능)" oninput="clSet(${cid},'${d}','${en}','memo',this.value)">${clEsc(r.memo)}</textarea></div>
   </div>`;
 }
-function clSet(cid,date,nm,field,val){ clRec(cid,date,nm)[field]=val; clSave(); }
+function clSyncToLesson(cid,date,nm){
+  const r=DB.classLog&&DB.classLog[cid]&&DB.classLog[cid][date]&&DB.classLog[cid][date][nm];
+  if(!r) return;
+  const has=['prog','hw','tWord','tBaek','tJong','mock','att','attend','sess','hwpct'].some(k=>r[k]!=null&&r[k]!=='');
+  DB.lessons=DB.lessons||{};
+  const snRaw=String(r.sess||'').replace(/\s*회차?\s*$/,'').trim();
+  const key=snRaw?('S'+cid+'#'+snRaw):('D'+cid+'#'+date);
+  const findRow=(rows)=>rows?(rows.find(x=>x._clKey===key)||rows.find(x=>x.date===date&&!x._clKey)):null;
+  const rows0=(DB.lessons[nm]&&DB.lessons[nm].rows)||null;
+  let row=findRow(rows0);
+  if(!has){ if(row&&row._clKey===key){ const i=rows0.indexOf(row); if(i>=0){ rows0.splice(i,1); save(); } } return; }
+  if(!DB.lessons[nm]) DB.lessons[nm]={period:'',attend:'',summary:'',goal:'',rows:[]};
+  const rows=DB.lessons[nm].rows;
+  if(!row) row=findRow(rows);
+  const st=DB.students.find(s=>s.name===nm)||{};
+  const high=(st.stype==='high')||/고/.test(st.grade||'');
+  const num=v=>{const t=String(v==null?'':v).replace(/[^0-9.]/g,'');return t===''?null:Number(t);};
+  const attMap={집중:'집중O',보통:'보통',산만:'집중X',졸음:'졸음'};
+  const data={
+    no: snRaw?(snRaw+'회'):(row?row.no:''),
+    date: date,
+    content: r.prog||'',
+    hw: r.hw||'',
+    rate: (r.hwpct!=null&&r.hwpct!=='')?(String(r.hwpct).replace(/[^0-9]/g,'')+'%'):(row?row.rate:''),
+    word: num(r.tWord),
+    baek: num(r.tBaek),
+    dan: high?num(r.mock):num(r.tJong),
+    att: attMap[r.att]||r.att||null,
+    late: r.attend==='지각'?num(r.lateMin):null,
+    _clKey: key
+  };
+  if(row){ Object.assign(row,data); }
+  else { rows.push(data); }
+  rows.sort((a,b)=>{const na=parseInt(String(a.no||'').replace(/[^0-9]/g,'')),nb=parseInt(String(b.no||'').replace(/[^0-9]/g,''));const va=isNaN(na)?9999:na,vb=isNaN(nb)?9999:nb;if(va!==vb)return va-vb;return String(a.date||'').localeCompare(String(b.date||''));});
+}
+function clSet(cid,date,nm,field,val){ clRec(cid,date,nm)[field]=val; clSyncToLesson(cid,date,nm); clSave(); }
 function clChip(el,cid,date,nm,field,val){
   const r=clRec(cid,date,nm);
   r[field]=(r[field]===val)?'':val;
   el.parentElement.querySelectorAll('[data-chip]').forEach(c=>{c.classList.remove('chip-on');c.style.removeProperty('--on');});
   if(r[field]===val){ el.classList.add('chip-on'); el.style.setProperty('--on', el.getAttribute('data-color')||'#3D6FFF'); }
-  clSave(); clRefreshHead();
+  clSyncToLesson(cid,date,nm); clSave(); clRefreshHead();
 }
 /* ── 카톡 문구 ── */
 function clBuildMsg(cls,nm,target){
@@ -1860,6 +1898,7 @@ function clBuildMsg(cls,nm,target){
   const attS=({집중:'집중O',보통:'보통',산만:'집중X',졸음:'졸음'})[r.att]||'';
   const lm=String(r.lateMin||'').replace(/[^0-9]/g,'');
   const att2=r.attend?(r.attend==='지각'?('지각'+(lm?` ${lm}분`:'')):r.attend):'';
+  const mk=String(r.mock||'').replace(/[^0-9.]/g,'');
   const tW=String(r.tWord||'').replace(/[^0-9]/g,''),tB=String(r.tBaek||'').replace(/[^0-9]/g,''),tJ=String(r.tJong||'').replace(/[^0-9]/g,'');
   const testLines=()=>{const a=[];const f=(lb,n)=>{if(n!=='')a.push(`· ${lb}시험: ${n}개 틀림${n==='0'?' (만점! 🎉)':''}`);};f('단어',tW);f('백지',tB);f('종합문제',tJ);return a;};
   const pushLines=(val)=>{ String(val==null?'':val).replace(/\r/g,'').split('\n').map(x=>x.replace(/\s+$/,'')).filter(x=>x.trim()).forEach(x=>L.push(x)); };
@@ -1876,7 +1915,7 @@ function clBuildMsg(cls,nm,target){
     if(String(r.prog||'').trim()){ L.push('📌 오늘 수업 진도'); pushLines(r.prog); L.push(''); }
     if(String(r.hw||'').trim()){ L.push('✔️ 숙제'); pushLines(r.hw); L.push(''); }
     if(r.wordR||r.wordS){ const w=[oneline(r.wordR),oneline(r.wordS)].filter(Boolean).join(' / '); L.push(`🔤 단어시험: ${w}${r.wordck==='재시'?' (재시험 예정)':r.wordck==='합격'?' (합격)':''}`); }
-    { const tl=testLines(); if(tl.length){ L.push('📊 TEST 결과'); tl.forEach(x=>L.push(x)); L.push(''); } }
+    { const tl=testLines(); if(mk) tl.push(`· 모의고사: ${mk}점`); if(tl.length){ L.push('📊 TEST 결과'); tl.forEach(x=>L.push(x)); L.push(''); } }
     if(String(r.memo||'').trim()){ L.push('📢 전달 사항'); pushLines(r.memo); L.push(''); }
     L.push('');
     L.push('가정에서도 숙제 확인 부탁드립니다. 감사합니다 🙏');
@@ -1889,7 +1928,7 @@ function clBuildMsg(cls,nm,target){
     if(String(r.prog||'').trim()){ L.push('📌 오늘 진도'); pushLines(r.prog); L.push(''); }
     if(String(r.hw||'').trim()){ L.push('✔️ 숙제'); pushLines(r.hw); L.push(''); }
     if(r.wordR) L.push(`🔤 다음 단어시험: ${oneline(r.wordR)}`);
-    { const tl=testLines(); if(tl.length){ L.push('📊 TEST 결과'); tl.forEach(x=>L.push(x)); } }
+    { const tl=testLines(); if(mk) tl.push(`· 모의고사: ${mk}점`); if(tl.length){ L.push('📊 TEST 결과'); tl.forEach(x=>L.push(x)); } }
     if(attS) L.push(`🙂 수업 태도: ${attS}`);
     L.push('');
     L.push('숙제 꼭 해오기! 다음 시간에 만나요 💪');
