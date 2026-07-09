@@ -1816,7 +1816,7 @@ function clCard(cls,nm){
     </div>
     ${prev?`<div class="cl-prev">📌 지난 숙제: ${clEsc(prev)}</div>`:''}
     <div><div class="cl-lbl">출석</div><div style="display:flex;gap:4px">${chip('attend','출석','출석','#1A6B3C')}${chip('attend','지각','지각','#C48A22')}${chip('attend','결석','결석','#E03E3E')}</div></div>
-    <div><div class="cl-lbl">오늘 진도/배운 내용</div><textarea class="fta" style="min-height:46px" placeholder="예: Ch.3 단어+본문 독해, 수동태 정리" oninput="clSet(${cid},'${d}','${en}','prog',this.value)">${clEsc(r.prog)}</textarea></div>
+    <div><div class="cl-lbl">오늘 나갈 예상 진도 <span style="color:#3D6FFF;font-weight:600">(미리 작성 → 카톡)</span></div><textarea class="fta" style="min-height:46px" placeholder="오늘 수업에서 나갈 진도 미리 적기 (예: Ch.3 단어+본문, 수동태)" oninput="clSet(${cid},'${d}','${en}','prog',this.value)">${clEsc(r.prog)}</textarea></div>
     <div><div class="cl-lbl">숙제</div><textarea class="fta" style="min-height:38px" placeholder="다음 시간까지 해올 숙제" oninput="clSet(${cid},'${d}','${en}','hw',this.value)">${clEsc(r.hw)}</textarea>
       <div style="display:flex;gap:4px;margin-top:5px">${chip('hwck','완료','숙제 완료','#1A6B3C')}${chip('hwck','부분','부분','#C48A22')}${chip('hwck','미완','미완','#E03E3E')}</div></div>
     <div style="display:flex;gap:8px">
@@ -1841,27 +1841,31 @@ function clBuildMsg(cls,nm,target){
   const r=clRec(cls.id,curClassDate,nm);
   const oneline=v=>String(v||'').replace(/\n/g,' ').trim();
   const L=[];
+  const ALWAYS='모르는 건 바로바로 질문하는 습관! 💪';
+  const fmt=(label,val)=>{ const raw=String(val==null?'':val).replace(/\r/g,'').replace(/\n{2,}/g,'\n').trim(); if(!raw) return; if(raw.indexOf('\n')>=0){ L.push(label); raw.split('\n').map(x=>x.trim()).filter(Boolean).forEach(x=>L.push(x)); } else { L.push(label+' '+raw); } };
   if(target==='parent'){
     L.push(`[엑설런스 영어] ${nm} 학생 어머니께 😊`);
     L.push(`${curClassDate} 수업 내용 안내드립니다.`);
     L.push('');
-    if(r.prog) L.push(`📖 오늘 진도: ${oneline(r.prog)}`);
+    fmt('📖 오늘 나갈 진도:', r.prog);
     if(r.wordR||r.wordS){ const w=[oneline(r.wordR),oneline(r.wordS)].filter(Boolean).join(' / '); L.push(`🔤 단어시험: ${w}${r.wordck==='재시'?' (재시험 예정)':r.wordck==='합격'?' (합격)':''}`); }
-    if(r.hw) L.push(`✏️ 숙제: ${oneline(r.hw)}`);
+    fmt('✏️ 숙제:', r.hw);
     if(r.att){ const m={집중:'집중도가 좋았어요',보통:'무난하게 참여했어요',산만:'다소 산만했어요',졸음:'컨디션이 안 좋아 보였어요'}; L.push(`🙂 수업 태도: ${m[r.att]||r.att}`); }
     if(r.attend&&r.attend!=='출석') L.push(`⏰ 출결: ${r.attend}`);
-    if(r.memo) L.push(`📌 특이사항: ${oneline(r.memo)}`);
+    fmt('📌 특이사항:', r.memo);
     L.push('');
     L.push('가정에서도 숙제 확인 부탁드립니다. 감사합니다 🙏');
+    L.push(ALWAYS);
   }else{
-    L.push(`[엑설런스 영어] ${nm} 오늘 수업 정리 ✏️`);
+    L.push(`[엑설런스 영어] ${nm} 오늘 수업 안내 ✏️`);
     L.push('');
-    if(r.prog) L.push(`▫️ 오늘 배운 것: ${oneline(r.prog)}`);
-    if(r.hw) L.push(`▫️ 숙제: ${oneline(r.hw)}`);
+    fmt('▫️ 오늘 진도:', r.prog);
+    fmt('▫️ 숙제:', r.hw);
     if(r.wordR) L.push(`▫️ 다음 단어시험: ${oneline(r.wordR)}`);
-    if(r.memo) L.push(`▫️ 메모: ${oneline(r.memo)}`);
+    fmt('▫️ 메모:', r.memo);
     L.push('');
     L.push('숙제 꼭 해오기! 다음 시간에 만나요 💪');
+    L.push(ALWAYS);
   }
   return L.join('\n');
 }
