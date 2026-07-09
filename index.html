@@ -1773,7 +1773,10 @@ function clSelClass(id){ curClassId=id; renderClassLive(); }
 function clSetDate(v){ curClassDate=v||clToday(); renderClassLive(); }
 function clBackfillLessons(){
   if(!DB.classLog) return;
+  const cnt=()=>{let t=0;for(const nm in (DB.lessons||{})) t+=((DB.lessons[nm]&&DB.lessons[nm].rows)||[]).length;return t;};
+  const before=cnt();
   for(const cid in DB.classLog){ const bd=DB.classLog[cid]||{}; for(const date in bd){ const bn=bd[date]||{}; for(const nm in bn){ clSyncToLesson(parseInt(cid),date,nm); } } }
+  if(cnt()>before && typeof save==='function') save();
 }
 function renderClassLive(){
   ensureClasses(); clBackfillLessons();
