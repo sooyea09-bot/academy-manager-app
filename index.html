@@ -1833,6 +1833,7 @@ function clCard(cls,nm){
     <div><div class="cl-lbl">오늘 나갈 예상 진도 <span style="color:#3D6FFF;font-weight:600">(미리 작성 → 카톡)</span></div><textarea class="fta" style="min-height:46px" placeholder="오늘 수업에서 나갈 진도 미리 적기 (예: Ch.3 단어+본문, 수동태)" oninput="clSet(${cid},'${d}','${en}','prog',this.value)">${clEsc(r.prog)}</textarea></div>
     <div><div class="cl-lbl">숙제</div><textarea class="fta" style="min-height:38px" placeholder="다음 시간까지 해올 숙제" oninput="clSet(${cid},'${d}','${en}','hw',this.value)">${clEsc(r.hw)}</textarea>
       <div style="display:flex;align-items:center;gap:8px;margin-top:6px"><span class="cl-lbl" style="margin:0">숙제상태</span><select class="fsel" style="width:96px;padding:5px 8px;font-size:11px" onchange="clSet(${cid},'${d}','${en}','hwpct',this.value)">${['','100','90','80','70','60','50','40','30','20','10','0'].map(v=>`<option value="${v}" ${String(r.hwpct||'')===v?'selected':''}>${v===''?'선택':v+'%'}</option>`).join('')}</select></div></div>
+    <div><div class="cl-lbl">오늘 숙제 미완료 <span style="color:#E03E3E;font-weight:600">(안 해온 것)</span></div><textarea class="fta" style="min-height:32px" placeholder="안 해온 숙제 (없으면 비워두기)" oninput="clSet(${cid},'${d}','${en}','hwX',this.value)">${clEsc(r.hwX)}</textarea></div>
     <div style="display:flex;gap:8px">
       <div style="flex:1"><div class="cl-lbl">단어시험 범위</div><input class="fi" placeholder="예: Day 3 (1~40)" value="${clEsc(r.wordR)}" oninput="clSet(${cid},'${d}','${en}','wordR',this.value)"></div>
       <div style="width:90px"><div class="cl-lbl">점수</div><input class="fi" placeholder="38/40" value="${clEsc(r.wordS)}" oninput="clSet(${cid},'${d}','${en}','wordS',this.value)"></div>
@@ -1844,6 +1845,10 @@ function clCard(cls,nm){
       <div style="flex:1"><input class="fi" type="number" min="0" style="text-align:center;padding:5px 3px" placeholder="종합" value="${clEsc(r.tJong)}" oninput="clSet(${cid},'${d}','${en}','tJong',this.value)"></div>
     </div><div style="font-size:9.5px;color:#aaa;margin-top:2px;display:flex;gap:6px"><span style="flex:1;text-align:center">단어</span><span style="flex:1;text-align:center">백지</span><span style="flex:1;text-align:center">종합</span></div></div>
     ${high?`<div><div class="cl-lbl">모의고사 점수 <span style="color:#5A1E8A;font-weight:600">(고등)</span></div><input class="fi" type="number" placeholder="예: 130" value="${clEsc(r.mock)}" oninput="clSet(${cid},'${d}','${en}','mock',this.value)"></div>`:''}
+    <div><div class="cl-lbl">추가 시험 <span style="color:#8A5B14;font-weight:600">(직접 입력 · 카톡 반영)</span></div>
+      <div style="display:flex;gap:6px;margin-bottom:5px"><input class="fi" style="flex:2;padding:5px 8px" placeholder="시험명" value="${clEsc(r.exN1)}" oninput="clSet(${cid},'${d}','${en}','exN1',this.value)"><input class="fi" type="number" min="0" style="flex:1;text-align:center;padding:5px 4px" placeholder="틀린수" value="${clEsc(r.exW1)}" oninput="clSet(${cid},'${d}','${en}','exW1',this.value)"></div>
+      <div style="display:flex;gap:6px"><input class="fi" style="flex:2;padding:5px 8px" placeholder="시험명" value="${clEsc(r.exN2)}" oninput="clSet(${cid},'${d}','${en}','exN2',this.value)"><input class="fi" type="number" min="0" style="flex:1;text-align:center;padding:5px 4px" placeholder="틀린수" value="${clEsc(r.exW2)}" oninput="clSet(${cid},'${d}','${en}','exW2',this.value)"></div>
+    </div>
     <div><div class="cl-lbl">수업 태도</div><div style="display:flex;gap:4px;flex-wrap:wrap">${chip('att','집중','집중O','#1A6B3C')}${chip('att','보통','보통','#C48A22')}${chip('att','산만','산만/집중X','#E03E3E')}${chip('att','졸음','졸음','#6a6a6a')}</div></div>
     <div><div class="cl-lbl">특이사항 · 전달사항 <span style="color:#3D6FFF;font-weight:600">(카톡에 전달)</span></div><textarea class="fta" style="min-height:40px" placeholder="학부모께 전달할 내용 (여러 줄 가능)" oninput="clSet(${cid},'${d}','${en}','memo',this.value)">${clEsc(r.memo)}</textarea></div>
   </div>`;
@@ -1851,7 +1856,7 @@ function clCard(cls,nm){
 function clSyncToLesson(cid,date,nm){
   const r=DB.classLog&&DB.classLog[cid]&&DB.classLog[cid][date]&&DB.classLog[cid][date][nm];
   if(!r) return;
-  const has=['prog','hw','tWord','tBaek','tJong','mock','att','attend','sess','hwpct'].some(k=>r[k]!=null&&r[k]!=='');
+  const has=['prog','hw','hwX','tWord','tBaek','tJong','mock','att','attend','sess','hwpct'].some(k=>r[k]!=null&&r[k]!=='');
   DB.lessons=DB.lessons||{};
   const snRaw=String(r.sess||'').replace(/\s*회차?\s*$/,'').trim();
   const key=snRaw?('S'+cid+'#'+snRaw):('D'+cid+'#'+date);
@@ -1871,6 +1876,7 @@ function clSyncToLesson(cid,date,nm){
     date: date,
     content: r.prog||'',
     hwA: r.hw||'',
+    hw: r.hwX||'',
     rate: (r.hwpct!=null&&r.hwpct!=='')?(String(r.hwpct).replace(/[^0-9]/g,'')+'%'):(row?row.rate:''),
     word: num(r.tWord),
     baek: num(r.tBaek),
@@ -1910,7 +1916,7 @@ function clBuildMsg(cls,nm,target){
   const att2=r.attend?(r.attend==='지각'?('지각'+(lm?` ${lm}분`:'')):r.attend):'';
   const mk=String(r.mock||'').replace(/[^0-9.]/g,'');
   const tW=String(r.tWord||'').replace(/[^0-9]/g,''),tB=String(r.tBaek||'').replace(/[^0-9]/g,''),tJ=String(r.tJong||'').replace(/[^0-9]/g,'');
-  const testLines=()=>{const a=[];const f=(lb,n)=>{if(n!=='')a.push(`· ${lb}시험: ${n}개 틀림${n==='0'?' (만점! 🎉)':''}`);};f('단어',tW);f('백지',tB);f('종합문제',tJ);return a;};
+  const testLines=()=>{const a=[];const f=(lb,n)=>{if(n!=='')a.push(`· ${lb}시험: ${n}개 틀림${n==='0'?' (만점! 🎉)':''}`);};f('단어',tW);f('백지',tB);f('종합문제',tJ);const cx=(nm,v)=>{nm=String(nm||'').trim();const n=String(v==null?'':v).replace(/[^0-9]/g,'');if(nm&&n!=='')a.push(`· ${nm}: ${n}개 틀림${n==='0'?' (만점! 🎉)':''}`);};cx(r.exN1,r.exW1);cx(r.exN2,r.exW2);return a;};
   const pushLines=(val)=>{ String(val==null?'':val).replace(/\r/g,'').split('\n').map(x=>x.replace(/\s+$/,'')).filter(x=>x.trim()).forEach(x=>L.push(x)); };
   if(target==='parent'){
     L.push(`[엑설런스 영어] ${nm} 수업 안내 😊`);
