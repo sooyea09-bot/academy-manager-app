@@ -1739,6 +1739,8 @@ function setAtt(nm,ri,v){if(DB.lessons[nm])DB.lessons[nm].rows[ri].att=v||null;s
 /* ═══════════════ 개별맞춤 수업 (LIVE CLASS) ═══════════════ */
 const CL_WDAYS=['월','화','수','목','금','토','일'];
 const CL_LV={'초':'초등','중':'중등','고':'고등'};
+function clLvArr(c){ return (c&&Array.isArray(c.levels)&&c.levels.length)?c.levels:(c&&c.level?[c.level]:[]); }
+function clLvBadges(c){ const a=clLvArr(c); if(!a.length) return ''; return a.map(l=>{const b=l==='고'?'b-high':l==='중'?'b-mid':'b-B';return `<span class="badge ${b}" style="margin-left:3px">${CL_LV[l]||l}</span>`;}).join(''); }
 let curClassId=null, curClassDate=null, curKkTarget='parent', _clTimer=null, _clKkCtx=null;
 function clEsc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function clToday(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -1796,7 +1798,7 @@ function clRenderHead(cls){
   const wd=new Date(curClassDate); const wname=isNaN(wd.getTime())?'':CL_WDAYS[(wd.getDay()+6)%7];
   const lvb=cls.level==='고'?'b-high':cls.level==='중'?'b-mid':'b-B';
   document.getElementById('clHead').innerHTML=`<div class="card" style="margin-bottom:14px"><div class="cb" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-    <div><div style="font-size:16px;font-weight:800">${clEsc(cls.name)} <span class="badge ${lvb}">${CL_LV[cls.level]||cls.level||''}</span></div>
+    <div><div style="font-size:16px;font-weight:800">${clEsc(cls.name)} ${clLvBadges(cls)}</div>
     <div style="font-size:11px;color:#888;margin-top:3px">${(cls.days||[]).join('·')} ${clEsc(cls.time||'')} · 정원 ${cls.cap||0}명</div></div>
     <button class="btn b-blue b-sm" onclick="openClassAssign(${cls.id})">👥 학생 배정</button>
     <div style="margin-left:auto;text-align:right"><div style="font-size:11px;color:#999">${curClassDate}${wname?' ('+wname+')':''} 기록 현황</div><div style="font-size:18px;font-weight:900;font-family:var(--M)">${done}<span style="font-size:12px;color:#999">/${mem.length}명</span></div></div>
@@ -1890,6 +1892,16 @@ function clSyncToLesson(cid,date,nm){
   if(row){ Object.assign(row,data); target=row; }
   else { rows.push(data); target=data; }
   if(snRaw){ for(let i=rows.length-1;i>=0;i--){ if(rows[i]!==target && String(rows[i].no||'').replace(/[^0-9]/g,'')===snRaw) rows.splice(i,1); } }
+  (function(){
+    const snNum=parseInt(snRaw);
+    if(isNaN(snNum)||snNum<1||snNum>20) return;
+    const idx=snNum-1;
+    const db=high?(DB.scHigh=DB.scHigh||{}):(DB.scMid=DB.scMid||{});
+    if(!db[nm]){ const ff=(typeof getCfgFields==='function')?getCfgFields(high?'high':'mid'):[{label:'단어(틀린수)',dir:'down'},{label:'백지(틀린수)',dir:'down'},{label:high?'모의(총점)':'종합Test',dir:high?'up':'down'},{label:high?'미니(틀린수)':'복습(점수)',dir:high?'down':'up'}]; db[nm]={rows:ff.map(f=>({label:f.label,dir:f.dir,vals:Array(8).fill(null)}))}; }
+    const sc=db[nm].rows;
+    const setv=(i,v)=>{ if(!sc[i])return; while(sc[i].vals.length<idx+1) sc[i].vals.push(null); sc[i].vals[idx]=(v==null?null:v); };
+    setv(0,data.word); setv(1,data.baek); setv(2,data.dan);
+  })();
   rows.sort((a,b)=>{const na=parseInt(String(a.no||'').replace(/[^0-9]/g,'')),nb=parseInt(String(b.no||'').replace(/[^0-9]/g,''));const va=isNaN(na)?9999:na,vb=isNaN(nb)?9999:nb;if(va!==vb)return va-vb;return String(a.date||'').localeCompare(String(b.date||''));});
 }
 function clSet(cid,date,nm,field,val){ clRec(cid,date,nm)[field]=val; clSyncToLesson(cid,date,nm); clSave(); }
@@ -2011,7 +2023,7 @@ function clCommonApply(){
 function openClassSettings(){
   ensureClasses();
   const rows=DB.classes.map(c=>{const lvb=c.level==='고'?'b-high':c.level==='중'?'b-mid':'b-B';return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid #eee;border-radius:10px;margin-bottom:8px">
-    <div style="flex:1"><div style="font-weight:800;font-size:13px">${clEsc(c.name)} <span class="badge ${lvb}">${CL_LV[c.level]||c.level||''}</span></div>
+    <div style="flex:1"><div style="font-weight:800;font-size:13px">${clEsc(c.name)} ${clLvBadges(c)}</div>
     <div style="font-size:11px;color:#888;margin-top:2px">${(c.days||[]).join('·')} ${clEsc(c.time||'')} · 정원 ${c.cap||0}명 · 배정 ${(c.members||[]).length}명</div></div>
     <button class="btn b-ghost b-xs" onclick="openClassEdit(${c.id})">수정</button>
     <button class="btn b-red b-xs" onclick="delClass(${c.id})">삭제</button></div>`;}).join('');
@@ -2026,7 +2038,7 @@ function openClassEdit(id){
   openMod(id?'반 수정':'반 추가',
     `<div class="fg" style="grid-template-columns:1fr 1fr">
        <div class="ff"><div class="fl">반 이름 *</div><input class="fi" id="csName" value="${clEsc(c.name)}" placeholder="예: 월금 6시반"></div>
-       <div class="ff"><div class="fl">급</div><select class="fsel" id="csLevel"><option value="초" ${c.level==='초'?'selected':''}>초등</option><option value="중" ${c.level==='중'?'selected':''}>중등</option><option value="고" ${c.level==='고'?'selected':''}>고등</option></select></div>
+       <div class="ff"><div class="fl">급 (여러 개 선택 가능)</div><div class="wday-row" id="csLevels">${['초','중','고'].map(l=>`<div class="wday-btn${clLvArr(c).includes(l)?' on':''}" onclick="this.classList.toggle('on')" data-l="${l}">${CL_LV[l]}</div>`).join('')}</div></div>
        <div class="ff"><div class="fl">수업 시간</div><input class="fi" type="time" id="csTime" value="${clEsc(c.time)}"></div>
        <div class="ff"><div class="fl">정원 (인원수)</div><input class="fi" type="number" id="csCap" min="1" max="20" value="${c.cap||6}"></div>
      </div>
@@ -2038,7 +2050,8 @@ function saveClass(id){
   const name=gv('csName'); if(!name){toast('반 이름을 입력하세요');return;}
   const days=[...document.querySelectorAll('#csDays .wday-btn.on')].map(b=>b.dataset.d);
   const members=[...document.querySelectorAll('.csMem:checked')].map(b=>b.value);
-  const o={name,level:gv('csLevel')||'중',time:gv('csTime'),cap:parseInt(gv('csCap'))||6,days,members};
+  const levels=[...document.querySelectorAll('#csLevels .wday-btn.on')].map(b=>b.dataset.l);
+  const o={name,levels,level:levels[0]||'중',time:gv('csTime'),cap:parseInt(gv('csCap'))||6,days,members};
   let tid;
   if(id){ Object.assign(DB.classes.find(c=>c.id===id),o); tid=id; }
   else { tid=nid(DB.classes); DB.classes.push({id:tid,...o}); }
