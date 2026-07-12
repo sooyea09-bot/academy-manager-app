@@ -1842,14 +1842,14 @@ function clCard(cls,nm){
     </div>
     <div style="display:flex;gap:4px">${chip('wordck','합격','단어 합격','#1A6B3C')}${chip('wordck','재시','재시험','#E03E3E')}</div>
     <div><div class="cl-lbl">TEST 틀린 개수</div><div style="display:flex;gap:6px">
-      <div style="flex:1"><input class="fi" type="number" min="0" style="text-align:center;padding:5px 3px" placeholder="단어" value="${clEsc(r.tWord)}" oninput="clSet(${cid},'${d}','${en}','tWord',this.value)"></div>
-      <div style="flex:1"><input class="fi" type="number" min="0" style="text-align:center;padding:5px 3px" placeholder="백지" value="${clEsc(r.tBaek)}" oninput="clSet(${cid},'${d}','${en}','tBaek',this.value)"></div>
-      <div style="flex:1"><input class="fi" type="number" min="0" style="text-align:center;padding:5px 3px" placeholder="종합" value="${clEsc(r.tJong)}" oninput="clSet(${cid},'${d}','${en}','tJong',this.value)"></div>
+      <div style="flex:1"><input class="fi" style="text-align:center;padding:5px 3px" placeholder="단어" value="${clEsc(r.tWord)}" oninput="clSet(${cid},'${d}','${en}','tWord',this.value)"></div>
+      <div style="flex:1"><input class="fi" style="text-align:center;padding:5px 3px" placeholder="백지" value="${clEsc(r.tBaek)}" oninput="clSet(${cid},'${d}','${en}','tBaek',this.value)"></div>
+      <div style="flex:1"><input class="fi" style="text-align:center;padding:5px 3px" placeholder="종합" value="${clEsc(r.tJong)}" oninput="clSet(${cid},'${d}','${en}','tJong',this.value)"></div>
     </div><div style="font-size:9.5px;color:#aaa;margin-top:2px;display:flex;gap:6px"><span style="flex:1;text-align:center">단어</span><span style="flex:1;text-align:center">백지</span><span style="flex:1;text-align:center">종합</span></div></div>
     ${high?`<div><div class="cl-lbl">모의고사 점수 <span style="color:#5A1E8A;font-weight:600">(고등)</span></div><input class="fi" type="number" placeholder="예: 130" value="${clEsc(r.mock)}" oninput="clSet(${cid},'${d}','${en}','mock',this.value)"></div>`:''}
     <div><div class="cl-lbl">추가 시험 <span style="color:#8A5B14;font-weight:600">(직접 입력 · 카톡 반영)</span></div>
-      <div style="display:flex;gap:6px;margin-bottom:5px"><input class="fi" style="flex:2;padding:5px 8px" placeholder="시험명" value="${clEsc(r.exN1)}" oninput="clSet(${cid},'${d}','${en}','exN1',this.value)"><input class="fi" type="number" min="0" style="flex:1;text-align:center;padding:5px 4px" placeholder="틀린수" value="${clEsc(r.exW1)}" oninput="clSet(${cid},'${d}','${en}','exW1',this.value)"></div>
-      <div style="display:flex;gap:6px"><input class="fi" style="flex:2;padding:5px 8px" placeholder="시험명" value="${clEsc(r.exN2)}" oninput="clSet(${cid},'${d}','${en}','exN2',this.value)"><input class="fi" type="number" min="0" style="flex:1;text-align:center;padding:5px 4px" placeholder="틀린수" value="${clEsc(r.exW2)}" oninput="clSet(${cid},'${d}','${en}','exW2',this.value)"></div>
+      <div style="display:flex;gap:6px;margin-bottom:5px"><input class="fi" style="flex:2;padding:5px 8px" placeholder="시험명" value="${clEsc(r.exN1)}" oninput="clSet(${cid},'${d}','${en}','exN1',this.value)"><input class="fi" style="flex:1;text-align:center;padding:5px 4px" placeholder="틀린수" value="${clEsc(r.exW1)}" oninput="clSet(${cid},'${d}','${en}','exW1',this.value)"></div>
+      <div style="display:flex;gap:6px"><input class="fi" style="flex:2;padding:5px 8px" placeholder="시험명" value="${clEsc(r.exN2)}" oninput="clSet(${cid},'${d}','${en}','exN2',this.value)"><input class="fi" style="flex:1;text-align:center;padding:5px 4px" placeholder="틀린수" value="${clEsc(r.exW2)}" oninput="clSet(${cid},'${d}','${en}','exW2',this.value)"></div>
     </div>
     <div><div class="cl-lbl">수업 태도</div><div style="display:flex;gap:4px;flex-wrap:wrap">${chip('att','집중','집중O','#1A6B3C')}${chip('att','보통','보통','#C48A22')}${chip('att','산만','산만/집중X','#E03E3E')}${chip('att','졸음','졸음','#6a6a6a')}</div></div>
     <div><div class="cl-lbl">특이사항 · 전달사항 <span style="color:#3D6FFF;font-weight:600">(카톡에 전달)</span></div><textarea class="fta" style="min-height:40px" placeholder="학부모께 전달할 내용 (여러 줄 가능)" oninput="clSet(${cid},'${d}','${en}','memo',this.value)">${clEsc(r.memo)}</textarea></div>
@@ -1871,7 +1871,7 @@ function clSyncToLesson(cid,date,nm){
   if(!row) row=findRow(rows);
   const st=DB.students.find(s=>s.name===nm)||{};
   const high=(st.stype==='high')||/고/.test(st.grade||'');
-  const num=v=>{const t=String(v==null?'':v).replace(/[^0-9.]/g,'');return t===''?null:Number(t);};
+  const num=v=>{const t=String(v==null?'':v).replace(/[^0-9.]/g,'');const nn=Number(t);return (t===''||isNaN(nn))?null:nn;};
   const attMap={집중:'집중O',보통:'보통',산만:'집중X',졸음:'졸음'};
   const data={
     no: snRaw?(snRaw+'회'):(row?row.no:''),
@@ -1927,8 +1927,8 @@ function clBuildMsg(cls,nm,target){
   const lm=String(r.lateMin||'').replace(/[^0-9]/g,'');
   const att2=r.attend?(r.attend==='지각'?('지각'+(lm?` ${lm}분`:'')):r.attend):'';
   const mk=String(r.mock||'').replace(/[^0-9.]/g,'');
-  const tW=String(r.tWord||'').replace(/[^0-9]/g,''),tB=String(r.tBaek||'').replace(/[^0-9]/g,''),tJ=String(r.tJong||'').replace(/[^0-9]/g,'');
-  const testLines=()=>{const a=[];const f=(lb,n)=>{if(n!=='')a.push(`· ${lb}시험: ${n}개 틀림${n==='0'?' (만점! 🎉)':''}`);};f('단어',tW);f('백지',tB);f('종합문제',tJ);const cx=(nm,v)=>{nm=String(nm||'').trim();const n=String(v==null?'':v).replace(/[^0-9]/g,'');if(nm&&n!=='')a.push(`· ${nm}: ${n}개 틀림${n==='0'?' (만점! 🎉)':''}`);};cx(r.exN1,r.exW1);cx(r.exN2,r.exW2);return a;};
+  const tW=String(r.tWord==null?'':r.tWord).trim(),tB=String(r.tBaek==null?'':r.tBaek).trim(),tJ=String(r.tJong==null?'':r.tJong).trim();
+  const testLines=()=>{const a=[];const f=(lb,n)=>{if(n!=='')a.push(`· ${lb}시험: ${n}개 틀림${n==='0'?' (만점! 🎉)':''}`);};f('단어',tW);f('백지',tB);f('종합문제',tJ);const cx=(nm,v)=>{nm=String(nm||'').trim();const n=String(v==null?'':v).trim();if(nm&&n!=='')a.push(`· ${nm}: ${n}개 틀림${n==='0'?' (만점! 🎉)':''}`);};cx(r.exN1,r.exW1);cx(r.exN2,r.exW2);return a;};
   const pushLines=(val)=>{ String(val==null?'':val).replace(/\r/g,'').split('\n').map(x=>x.replace(/\s+$/,'')).filter(x=>x.trim()).forEach(x=>L.push(x)); };
   if(target==='parent'){
     L.push(`[엑설런스 영어] ${nm} 수업 안내 😊`);
