@@ -1949,6 +1949,7 @@ function clBuildMsg(cls,nm,target){
     L.push('');
     if(String(r.prog||'').trim()){ L.push('📌 오늘 수업 진도'); pushLines(r.prog); L.push(''); }
     if(String(r.hw||'').trim()){ L.push('✔️ 숙제'); pushLines(r.hw); L.push(''); }
+    if(String(r.hwX||'').trim()){ L.push('❗ 안 해온 숙제 (미완료)'); pushLines(r.hwX); L.push(''); }
     if(r.wordR||r.wordS){ const w=[oneline(r.wordR),oneline(r.wordS)].filter(Boolean).join(' / '); L.push(`🔤 단어시험: ${w}${r.wordck==='재시'?' (재시험 예정)':r.wordck==='합격'?' (합격)':''}`); }
     { const tl=testLines(); if(mk) tl.push(`· 모의고사: ${mk}점`); if(tl.length){ L.push('📊 TEST 결과'); tl.forEach(x=>L.push(x)); L.push(''); } }
     if(String(r.memo||'').trim()){ L.push('📢 전달 사항'); pushLines(r.memo); L.push(''); }
