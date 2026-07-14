@@ -1862,7 +1862,7 @@ function clSyncToLesson(cid,date,nm){
   DB.lessons=DB.lessons||{};
   const snRaw=String(r.sess||'').replace(/\s*회차?\s*$/,'').trim();
   const key=snRaw?('S'+cid+'#'+snRaw):('D'+cid+'#'+date);
-  const findRow=(rows)=>{ if(!rows) return null; return rows.find(x=>x._clKey===key) || (snRaw?rows.find(x=>String(x.no||'').replace(/[^0-9]/g,'')===snRaw):null) || rows.find(x=>x.date===date&&!x._clKey); };
+  const findRow=(rows)=>{ if(!rows) return null; return rows.find(x=>x._clKey===key) || (snRaw?rows.find(x=>String(x.no||'').replace(/[^0-9]/g,'')===snRaw):null) || rows.find(x=>x._clKey===('D'+cid+'#'+date)) || rows.find(x=>x.date===date&&!x._clKey); };
   const rows0=(DB.lessons[nm]&&DB.lessons[nm].rows)||null;
   let row=findRow(rows0);
   if(!has){ if(row&&row._clKey===key){ const i=rows0.indexOf(row); if(i>=0){ rows0.splice(i,1); save(); } } return; }
@@ -1892,6 +1892,7 @@ function clSyncToLesson(cid,date,nm){
   if(row){ Object.assign(row,data); target=row; }
   else { rows.push(data); target=data; }
   if(snRaw){ for(let i=rows.length-1;i>=0;i--){ if(rows[i]!==target && String(rows[i].no||'').replace(/[^0-9]/g,'')===snRaw) rows.splice(i,1); } }
+  for(let i=rows.length-1;i>=0;i--){ if(rows[i]!==target && rows[i]._clKey && rows[i].date===date) rows.splice(i,1); }
   (function(){
     const snNum=parseInt(snRaw);
     if(isNaN(snNum)||snNum<1||snNum>20) return;
