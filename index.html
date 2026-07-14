@@ -1764,6 +1764,12 @@ function clRec(cid,date,nm){
   return DB.classLog[cid][date][nm];
 }
 function clHasRec(r){ if(!r) return false; return ['prog','hw','wordR','wordS','att','memo','attend','hwck','wordck'].some(k=>r[k]); }
+function clPrevInfo(cid,nm,date){
+  const log=DB.classLog[cid]; if(!log) return null;
+  const dates=Object.keys(log).filter(d=>d<date).sort();
+  for(let i=dates.length-1;i>=0;i--){ const r=log[dates[i]]&&log[dates[i]][nm]; if(r&&(r.hw||r.prog)){ const sn=String(r.sess||'').replace(/\s*회차?\s*$/,'').trim(); return {sn:sn,date:dates[i],prog:r.prog||'',hw:r.hw||''}; } }
+  return null;
+}
 function clPrevHw(cid,nm,date){
   const log=DB.classLog[cid]; if(!log) return '';
   const dates=Object.keys(log).filter(d=>d<date).sort();
@@ -1814,7 +1820,7 @@ function clCard(cls,nm){
   const r=clRec(cls.id,curClassDate,nm);
   const high=(st.stype==='high')||/고/.test(st.grade||'');
   const cid=cls.id, d=curClassDate, en=clEsc(nm);
-  const prev=clPrevHw(cid,nm,d);
+  const prev=clPrevInfo(cid,nm,d);
   const chip=(field,val,label,color)=>`<span data-chip data-color="${color}" class="cl-chip ${r[field]===val?'chip-on':''}" style="${r[field]===val?'--on:'+color:''}" onclick="clChip(this,${cid},'${d}','${en}','${field}','${val}')">${label}</span>`;
   return `<div class="cl-card">
     <div style="display:flex;align-items:center;gap:8px">
@@ -1826,7 +1832,7 @@ function clCard(cls,nm){
         <button class="btn b-red b-xs" title="이 반에서 빼기" onclick="clRemoveFromClass(${cid},'${en}')">✕</button>
       </div>
     </div>
-    ${prev?`<div class="cl-prev">📌 직전 회차 숙제 — ${clEsc(prev)}</div>`:''}
+    ${prev?`<div class="cl-prev">📌 직전 회차${prev.sn?` (${prev.sn}회차)`:''} · ${prev.date}${prev.prog?`<br>▫️ 진도: ${clEsc(String(prev.prog).replace(/\n/g,' '))}`:''}${prev.hw?`<br>▫️ 숙제: ${clEsc(String(prev.hw).replace(/\n/g,' '))}`:''}</div>`:''}
     <div style="display:flex;gap:8px">
       <div style="width:58px"><div class="cl-lbl">회차</div><input class="fi" style="text-align:center;padding:6px 4px" placeholder="예:3" value="${clEsc(r.sess)}" oninput="clSet(${cid},'${d}','${en}','sess',this.value)"></div>
       <div style="width:74px"><div class="cl-lbl">수업시간</div><input class="fi" style="text-align:center;padding:6px 4px" placeholder="2" value="${clEsc(r.dur)}" oninput="clSet(${cid},'${d}','${en}','dur',this.value)"></div>
