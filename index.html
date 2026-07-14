@@ -1767,7 +1767,7 @@ function clHasRec(r){ if(!r) return false; return ['prog','hw','wordR','wordS','
 function clPrevHw(cid,nm,date){
   const log=DB.classLog[cid]; if(!log) return '';
   const dates=Object.keys(log).filter(d=>d<date).sort();
-  for(let i=dates.length-1;i>=0;i--){ const r=log[dates[i]]&&log[dates[i]][nm]; if(r&&r.hw) return dates[i]+' · '+r.hw; }
+  for(let i=dates.length-1;i>=0;i--){ const r=log[dates[i]]&&log[dates[i]][nm]; if(r&&r.hw){ const sn=String(r.sess||'').replace(/\s*회차?\s*$/,'').trim(); return (sn?sn+'회차 ':'')+'('+dates[i]+') '+r.hw; } }
   return '';
 }
 function clSave(){ clearTimeout(_clTimer); _clTimer=setTimeout(()=>save(),1000); }
@@ -1826,7 +1826,7 @@ function clCard(cls,nm){
         <button class="btn b-red b-xs" title="이 반에서 빼기" onclick="clRemoveFromClass(${cid},'${en}')">✕</button>
       </div>
     </div>
-    ${prev?`<div class="cl-prev">📌 지난 숙제: ${clEsc(prev)}</div>`:''}
+    ${prev?`<div class="cl-prev">📌 직전 회차 숙제 — ${clEsc(prev)}</div>`:''}
     <div style="display:flex;gap:8px">
       <div style="width:58px"><div class="cl-lbl">회차</div><input class="fi" style="text-align:center;padding:6px 4px" placeholder="예:3" value="${clEsc(r.sess)}" oninput="clSet(${cid},'${d}','${en}','sess',this.value)"></div>
       <div style="width:74px"><div class="cl-lbl">수업시간</div><input class="fi" style="text-align:center;padding:6px 4px" placeholder="2" value="${clEsc(r.dur)}" oninput="clSet(${cid},'${d}','${en}','dur',this.value)"></div>
