@@ -1834,7 +1834,7 @@ function clCard(cls,nm){
     </div>
     ${prev?`<div class="cl-prev">📌 직전 회차${prev.sn?` (${prev.sn}회차)`:''} · ${prev.date}${prev.prog?`<br>▫️ 진도: ${clEsc(String(prev.prog).replace(/\n/g,' '))}`:''}${prev.hw?`<br>▫️ 숙제: ${clEsc(String(prev.hw).replace(/\n/g,' '))}`:''}</div>`:''}
     <div style="display:flex;gap:8px">
-      <div style="width:58px"><div class="cl-lbl">회차</div><input class="fi" style="text-align:center;padding:6px 4px" placeholder="예:3" value="${clEsc(r.sess)}" oninput="clSet(${cid},'${d}','${en}','sess',this.value)"></div>
+      <div style="width:72px"><div class="cl-lbl">회차</div><select class="fsel" style="width:100%;padding:5px 3px" onchange="clSet(${cid},'${d}','${en}','sess',this.value)">${['','1','2','3','4','5','6','7','8'].map(v=>`<option value="${v}" ${String(r.sess||'')===v?'selected':''}>${v===''?'회차':v+'회'}</option>`).join('')}</select></div>
       <div style="width:74px"><div class="cl-lbl">수업시간</div><input class="fi" style="text-align:center;padding:6px 4px" placeholder="2" value="${clEsc(r.dur)}" oninput="clSet(${cid},'${d}','${en}','dur',this.value)"></div>
       <div style="flex:1"><div class="cl-lbl">출석</div><div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">${chip('attend','출석','출석','#1A6B3C')}${chip('attend','지각','지각','#C48A22')}${chip('attend','결석','결석','#E03E3E')}<span style="display:inline-flex;align-items:center;gap:3px;margin-left:2px"><input class="fi" style="width:44px;text-align:center;padding:4px 3px" placeholder="분" value="${clEsc(r.lateMin)}" oninput="clSet(${cid},'${d}','${en}','lateMin',this.value)"><span style="font-size:10px;color:#999">분 지각</span></span></div></div>
     </div>
@@ -2713,9 +2713,11 @@ function applyLesCfg(){
   }
 }
 
+function clSortLessonRows(rows){ if(!Array.isArray(rows)) return; rows.sort((a,b)=>{const na=parseInt(String(a.no||'').replace(/[^0-9]/g,'')),nb=parseInt(String(b.no||'').replace(/[^0-9]/g,''));const va=isNaN(na)?9999:na,vb=isNaN(nb)?9999:nb;if(va!==vb)return va-vb;return String(a.date||'').localeCompare(String(b.date||''));}); }
 function showLesson(nm){
   document.getElementById('lesT').textContent=`${nm} — 수업 진도 & 피드백`;
   const ld=DB.lessons[nm];
+  if(ld&&ld.rows) clSortLessonRows(ld.rows);
   if(!ld?.rows?.length){
     document.getElementById('lesBody').innerHTML='<div style="padding:20px;text-align:center;color:var(--ink3);font-size:12px">기록이 없습니다. "+ 회차 기록"으로 추가하세요.</div>';
     document.getElementById('lesMeta').innerHTML='';document.getElementById('lesSub').textContent='';return;
@@ -2913,7 +2915,7 @@ function openLessonAddModal(){
   const f2=fields[2]||{label:'단원(점수)',dir:'up'};const f3=fields[3]||{label:'복습(점수)',dir:'up'};
   openMod(`${nm} — 회차 추가`,`
   <div class="fg">
-    <div class="ff"><div class="fl">회차</div><input class="fi" id="lno" value="${nxt}"></div>
+    <div class="ff"><div class="fl">회차</div><select class="fsel" id="lno">${['1회','2회','3회','4회','5회','6회','7회','8회'].map(v=>`<option value="${v}" ${nxt===v?'selected':''}>${v}</option>`).join('')}</select></div>
     <div class="ff"><div class="fl">수업일 *</div><input class="fi" type="date" id="ldt"></div>
     <div class="ff"><div class="fl">숙제 완료도</div><select class="fsel" id="lrt"><option>100%</option><option>80%</option><option>60%</option><option>40%</option><option>0%</option></select></div>
     <div class="ff"><div class="fl">🕒 지각 여부</div><select class="fsel" id="llate">${lateOpts('')}</select></div>
@@ -2979,7 +2981,7 @@ function editLRow(nm,ri){
   const g0=efields[0]||{label:'단어(틀린수)',dir:'down'};const g1=efields[1]||{label:'백지(틀린수)',dir:'down'};
   const g2=efields[2]||{label:'단원(점수)',dir:'up'};const g3=efields[3]||{label:'복습(점수)',dir:'up'};
   openMod(`${r.no} 수정`,`<div class="fg">
-    <div class="ff"><div class="fl">회차</div><input class="fi" id="eno" value="${r.no||''}"></div>
+    <div class="ff"><div class="fl">회차</div><select class="fsel" id="eno">${['1회','2회','3회','4회','5회','6회','7회','8회'].map(v=>`<option value="${v}" ${(r.no||'')===v?'selected':''}>${v}</option>`).join('')}</select></div>
     <div class="ff"><div class="fl">수업일</div><input class="fi" type="date" id="edt" value="${r.date||''}"></div>
     <div class="ff"><div class="fl">완료도</div><input class="fi" id="ert" value="${r.rate||''}"></div>
     <div class="ff"><div class="fl">🕒 지각 여부</div><select class="fsel" id="elate">${lateOpts(r.late)}</select></div>
@@ -3460,7 +3462,7 @@ function renderUnifiedInit(){
 }
 function renderUnified(nm){
   if(!nm)return;
-  const ld=DB.lessons[nm];const st=DB.students.find(s=>s.name===nm);
+  const ld=DB.lessons[nm];if(ld&&ld.rows) clSortLessonRows(ld.rows);const st=DB.students.find(s=>s.name===nm);
   const tab=st?.stype||'mid';const db=tab==='mid'?DB.scMid:DB.scHigh;const sd=db[nm];
   const cfg=getCfg();const fields=getCfgFields(tab);
   const showHw=cfg.hw!==false;const showAtt=cfg.att!==false;const showNote=cfg.note===true;
