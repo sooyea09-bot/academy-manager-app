@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: v31-redeploy -->
+<!-- build: v33 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1842,11 +1842,6 @@ function clCard(cls,nm){
     <div><div class="cl-lbl">숙제</div><textarea class="fta" style="min-height:38px" placeholder="다음 시간까지 해올 숙제" oninput="clSet(${cid},'${d}','${en}','hw',this.value)">${clEsc(r.hw)}</textarea>
       <div style="display:flex;align-items:center;gap:8px;margin-top:6px"><span class="cl-lbl" style="margin:0">숙제상태</span><select class="fsel" style="width:96px;padding:5px 8px;font-size:11px" onchange="clSet(${cid},'${d}','${en}','hwpct',this.value)">${['','100','90','80','70','60','50','40','30','20','10','0'].map(v=>`<option value="${v}" ${String(r.hwpct||'')===v?'selected':''}>${v===''?'선택':v+'%'}</option>`).join('')}</select></div></div>
     <div><div class="cl-lbl">오늘 숙제 미완료 <span style="color:#E03E3E;font-weight:600">(안 해온 것)</span></div><textarea class="fta" style="min-height:32px" placeholder="안 해온 숙제 (없으면 비워두기)" oninput="clSet(${cid},'${d}','${en}','hwX',this.value)">${clEsc(r.hwX)}</textarea></div>
-    <div style="display:flex;gap:8px">
-      <div style="flex:1"><div class="cl-lbl">단어시험 범위</div><input class="fi" placeholder="예: Day 3 (1~40)" value="${clEsc(r.wordR)}" oninput="clSet(${cid},'${d}','${en}','wordR',this.value)"></div>
-      <div style="width:90px"><div class="cl-lbl">점수</div><input class="fi" placeholder="38/40" value="${clEsc(r.wordS)}" oninput="clSet(${cid},'${d}','${en}','wordS',this.value)"></div>
-    </div>
-    <div style="display:flex;gap:4px">${chip('wordck','합격','단어 합격','#1A6B3C')}${chip('wordck','재시','재시험','#E03E3E')}</div>
     <div><div class="cl-lbl">TEST 틀린 개수</div><div style="display:flex;gap:6px">
       <div style="flex:1"><input class="fi" style="text-align:center;padding:5px 3px" placeholder="단어" value="${clEsc(r.tWord)}" oninput="clSet(${cid},'${d}','${en}','tWord',this.value)"></div>
       <div style="flex:1"><input class="fi" style="text-align:center;padding:5px 3px" placeholder="백지" value="${clEsc(r.tBaek)}" oninput="clSet(${cid},'${d}','${en}','tBaek',this.value)"></div>
@@ -2017,14 +2012,13 @@ function clCommonInput(){
   openMod('✏️ 공통 진도·숙제 일괄 입력',
     `<div style="font-size:11px;color:#888;margin-bottom:10px">반 전체 학생에게 같은 내용을 한번에 입력합니다. 비워둔 칸은 기존 내용을 덮어쓰지 않아요.</div>
      <div class="ff" style="margin-bottom:10px"><div class="fl">오늘 진도</div><textarea class="fta" id="ciProg" style="min-height:46px"></textarea></div>
-     <div class="ff" style="margin-bottom:10px"><div class="fl">숙제</div><textarea class="fta" id="ciHw" style="min-height:38px"></textarea></div>
-     <div class="ff"><div class="fl">단어시험 범위</div><input class="fi" id="ciWordR"></div>`,
+     <div class="ff"><div class="fl">숙제</div><textarea class="fta" id="ciHw" style="min-height:38px"></textarea></div>`,
     `<button class="btn b-ghost" onclick="closeMod()">취소</button><button class="btn b-blue" onclick="clCommonApply()">전체 적용</button>`);
 }
 function clCommonApply(){
   const cls=DB.classes.find(c=>c.id===curClassId); if(!cls) return;
-  const prog=gv('ciProg'),hw=gv('ciHw'),wr=gv('ciWordR');
-  (cls.members||[]).forEach(nm=>{ const r=clRec(cls.id,curClassDate,nm); if(prog)r.prog=prog; if(hw)r.hw=hw; if(wr)r.wordR=wr; });
+  const prog=gv('ciProg'),hw=gv('ciHw');
+  (cls.members||[]).forEach(nm=>{ const r=clRec(cls.id,curClassDate,nm); if(prog)r.prog=prog; if(hw)r.hw=hw; });
   save(); closeMod(); renderClassLive(); toast('✅ 전체 적용 완료');
 }
 /* ── 반 설정 ── */
@@ -2759,8 +2753,8 @@ function showLesson(nm){
   }).join('');
   document.getElementById('lesBody').innerHTML=`<div class="lg-hd" style="${gs}">${hd}</div>`+body;
   document.getElementById('lesMeta').innerHTML=`
-    <div style="margin-bottom:4px"><b>📝 총평 :</b> <span ondblclick="editMeta('${nm}','summary',this)" style="cursor:pointer">${ld.summary||'총평을 입력하세요 (더블클릭 수정)'}</span></div>
-    <div><b style="color:var(--amber)">🎯 다음 목표 :</b> <span ondblclick="editMeta('${nm}','goal',this)" style="cursor:pointer">${ld.goal||'목표를 입력하세요 (더블클릭 수정)'}</span></div>`;
+    <div style="margin-bottom:6px"><b>📝 총평 :</b> <span id="lesSumSpan" ondblclick="editMeta('${nm}','summary',this)" style="cursor:pointer">${ld.summary||'총평을 입력하세요'}</span> <button class="btn b-ghost b-xs" onclick="editMeta('${nm}','summary',document.getElementById('lesSumSpan'))">✏️ 수정</button></div>
+    <div><b style="color:var(--amber)">🎯 다음 목표 :</b> <span id="lesGoalSpan" ondblclick="editMeta('${nm}','goal',this)" style="cursor:pointer">${ld.goal||'목표를 입력하세요'}</span> <button class="btn b-ghost b-xs" onclick="editMeta('${nm}','goal',document.getElementById('lesGoalSpan'))">✏️ 수정</button></div>`;
   if(document.getElementById('page-unified')?.classList.contains('on')){
     const us=document.getElementById('uniSel')?.value;if(us===nm)renderUnified(nm);
   }
@@ -2802,10 +2796,10 @@ function editLF(nm,ri,field,el){
 }
 function editMeta(nm,field,el){
   const cur=DB.lessons[nm]?.[field]||'';
-  const inp=document.createElement('input');inp.value=cur;inp.style.cssText='width:100%;font-size:12px;border:1px solid var(--blue);border-radius:4px;padding:3px 8px';
-  el.innerHTML='';el.appendChild(inp);inp.focus();inp.select();
-  const commit=()=>{if(DB.lessons[nm])DB.lessons[nm][field]=inp.value;save();showLesson(nm);};
-  inp.addEventListener('blur',commit);inp.addEventListener('keydown',e=>{if(e.key==='Enter')commit();if(e.key==='Escape')showLesson(nm);});
+  const ta=document.createElement('textarea');ta.value=cur;ta.rows=field==='summary'?3:2;ta.style.cssText='width:100%;font-size:12px;border:1px solid var(--blue);border-radius:6px;padding:6px 8px;line-height:1.6;resize:vertical;font-family:inherit;box-sizing:border-box';
+  el.innerHTML='';el.appendChild(ta);ta.focus();
+  const commit=()=>{if(DB.lessons[nm])DB.lessons[nm][field]=ta.value;save();showLesson(nm);};
+  ta.addEventListener('blur',commit);ta.addEventListener('keydown',e=>{if(e.key==='Escape')showLesson(nm);});
 }
 // 회차 점수 입력칸: 틀린수·점수 모두 숫자 직접 입력 (라벨 점수/틀린수로 구분)
 function lScoreInput(id, field, val){
