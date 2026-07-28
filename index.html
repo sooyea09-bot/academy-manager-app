@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: v33 -->
+<!-- build: v34-datafix -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1874,21 +1874,18 @@ function clSyncToLesson(cid,date,nm){
   const high=(st.stype==='high')||/고/.test(st.grade||'');
   const num=v=>{const t=String(v==null?'':v).replace(/[^0-9.]/g,'');const nn=Number(t);return (t===''||isNaN(nn))?null:nn;};
   const attMap={집중:'집중O',보통:'보통',산만:'집중X',졸음:'졸음'};
-  const data={
-    no: snRaw?(snRaw+'회'):(row?row.no:''),
-    date: date,
-    content: r.prog||'',
-    hwA: r.hw||'',
-    hw: r.hwX||'',
-    rate: (r.hwpct!=null&&r.hwpct!=='')?(String(r.hwpct).replace(/[^0-9]/g,'')+'%'):(row?row.rate:''),
-    word: num(r.tWord),
-    baek: num(r.tBaek),
-    dan: high?num(r.mock):num(r.tJong),
-    att: attMap[r.att]||r.att||null,
-    late: r.attend==='지각'?num(r.lateMin):null,
-    _clKey: key
-  };
-  if(row&&row._clKey&&row.hw&&!row.hwA){ row.hw=''; }
+  const s2=v=>String(v==null?'':v).trim();
+  const data={ date:date, _clKey:key };
+  if(snRaw) data.no=snRaw+'회'; else if(row&&row.no) data.no=row.no;
+  if(s2(r.prog)!=='') data.content=r.prog;
+  if(s2(r.hw)!=='') data.hwA=r.hw;
+  if(s2(r.hwX)!=='') data.hw=r.hwX;
+  if(r.hwpct!=null&&r.hwpct!=='') data.rate=String(r.hwpct).replace(/[^0-9]/g,'')+'%';
+  { const w=num(r.tWord); if(w!=null) data.word=w; }
+  { const b=num(r.tBaek); if(b!=null) data.baek=b; }
+  { const dn=high?num(r.mock):num(r.tJong); if(dn!=null) data.dan=dn; }
+  { const at=attMap[r.att]||r.att; if(at) data.att=at; }
+  if(r.attend==='지각'){ const lm2=num(r.lateMin); if(lm2!=null) data.late=lm2; }
   let target;
   if(row){ Object.assign(row,data); target=row; }
   else { rows.push(data); target=data; }
@@ -1901,7 +1898,7 @@ function clSyncToLesson(cid,date,nm){
     const db=high?(DB.scHigh=DB.scHigh||{}):(DB.scMid=DB.scMid||{});
     if(!db[nm]){ const ff=(typeof getCfgFields==='function')?getCfgFields(high?'high':'mid'):[{label:'단어(틀린수)',dir:'down'},{label:'백지(틀린수)',dir:'down'},{label:high?'모의(총점)':'종합Test',dir:high?'up':'down'},{label:high?'미니(틀린수)':'복습(점수)',dir:high?'down':'up'}]; db[nm]={rows:ff.map(f=>({label:f.label,dir:f.dir,vals:Array(8).fill(null)}))}; }
     const sc=db[nm].rows;
-    const setv=(i,v)=>{ if(!sc[i])return; while(sc[i].vals.length<idx+1) sc[i].vals.push(null); sc[i].vals[idx]=(v==null?null:v); };
+    const setv=(i,v)=>{ if(!sc[i]||v==null)return; while(sc[i].vals.length<idx+1) sc[i].vals.push(null); sc[i].vals[idx]=v; };
     setv(0,data.word); setv(1,data.baek); setv(2,data.dan);
   })();
   rows.sort((a,b)=>{const na=parseInt(String(a.no||'').replace(/[^0-9]/g,'')),nb=parseInt(String(b.no||'').replace(/[^0-9]/g,''));const va=isNaN(na)?9999:na,vb=isNaN(nb)?9999:nb;if(va!==vb)return va-vb;return String(a.date||'').localeCompare(String(b.date||''));});
