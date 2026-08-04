@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: v34-datafix -->
+<!-- build: v35 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1764,11 +1764,32 @@ function clRec(cid,date,nm){
   return DB.classLog[cid][date][nm];
 }
 function clHasRec(r){ if(!r) return false; return ['prog','hw','wordR','wordS','att','memo','attend','hwck','wordck'].some(k=>r[k]); }
+function clSyncFromLesson(nm,row){
+  if(!row||!row.date) return;
+  ensureClasses();
+  const cls=getStudentClass(nm); if(!cls) return;
+  const rec=clRec(cls.id,row.date,nm);
+  const st=DB.students.find(s=>s.name===nm)||{};
+  const high=(st.stype==='high')||/고/.test(st.grade||'');
+  const sn=String(row.no||'').replace(/[^0-9]/g,''); if(sn) rec.sess=sn;
+  rec.prog=row.content||'';
+  rec.hw=row.hwA||'';
+  rec.hwX=row.hw||'';
+  rec.hwpct=(row.rate!=null&&row.rate!=='')?String(row.rate).replace(/[^0-9]/g,''):'';
+  rec.tWord=(row.word==null?'':row.word);
+  rec.tBaek=(row.baek==null?'':row.baek);
+  if(high){ rec.mock=(row.dan==null?'':row.dan); } else { rec.tJong=(row.dan==null?'':row.dan); }
+  const revAtt={'집중O':'집중','집중X':'산만','졸음':'졸음','보통':'보통'};
+  if(row.att!=null) rec.att=revAtt[row.att]||'';
+}
 function clPrevInfo(cid,nm,date){
-  const log=DB.classLog[cid]; if(!log) return null;
-  const dates=Object.keys(log).filter(d=>d<date).sort();
-  for(let i=dates.length-1;i>=0;i--){ const r=log[dates[i]]&&log[dates[i]][nm]; if(r&&(r.hw||r.prog)){ const sn=String(r.sess||'').replace(/\s*회차?\s*$/,'').trim(); return {sn:sn,date:dates[i],prog:r.prog||'',hw:r.hw||''}; } }
-  return null;
+  const rows=(DB.lessons&&DB.lessons[nm]&&DB.lessons[nm].rows)||[];
+  const prior=rows.filter(r=>r.date&&String(r.date)<date).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const r=prior[prior.length-1]; if(!r) return null;
+  const sn=String(r.no||'').replace(/[^0-9]/g,'');
+  const prog=r.content||''; const hw=r.hwA||r.hw||'';
+  if(!prog&&!hw&&!sn) return null;
+  return {sn:sn,date:r.date,prog:prog,hw:hw};
 }
 function clPrevHw(cid,nm,date){
   const log=DB.classLog[cid]; if(!log) return '';
@@ -2943,6 +2964,7 @@ function saveLR(nm){
   if(!DB.lessons[nm])DB.lessons[nm]={period:'',attend:'',summary:'',goal:'',rows:[]};
   const row={no:gv('lno'),date:gv('ldt'),content:gv('lcon'),hwA:gv('lhwA'),hw:gv('lhw'),rate:gv('lrt'),word:tn(gv('lw')),baek:tn(gv('lb')),dan:tn(gv('ld')),rev:tn(gv('lr')),att,tnote:gv('ltn'),note:gv('lnote'),late:gv('llate')||''};
   DB.lessons[nm].rows.push(row);
+  if(typeof clSyncFromLesson==='function') clSyncFromLesson(nm,row);
   if(gv('lsum'))DB.lessons[nm].summary=gv('lsum');
   if(gv('lgoal'))DB.lessons[nm].goal=gv('lgoal');
   // 자동 연동: 출석부 업데이트
@@ -2997,6 +3019,7 @@ function saveEditLR(nm,ri){
   const tn=v=>v===''?null:v?Number(v):null;
   const attEl=document.querySelector('#eAttSel .att:not(.a-no)');
   Object.assign(DB.lessons[nm].rows[ri],{no:gv('eno'),date:gv('edt'),content:gv('econ'),hwA:gv('ehwA'),hw:gv('ehw'),rate:gv('ert'),word:tn(gv('ew')),baek:tn(gv('eb')),dan:tn(gv('ed')),rev:tn(gv('er')),att:attEl?.dataset.att||DB.lessons[nm].rows[ri].att||null,tnote:gv('etn'),note:gv('enote'),late:gv('elate')||''});
+  if(typeof clSyncFromLesson==='function') clSyncFromLesson(nm,DB.lessons[nm].rows[ri]);
   // 성적카드 자동 연동 (틀린수·점수 → 통합·홈 성적카드·그래프 자동 반영)
   const st=DB.students.find(s=>s.name===nm);const tab=st?.stype||'mid';const db=tab==='mid'?DB.scMid:DB.scHigh;
   if(!db[nm]){const ff=getCfgFields(tab);db[nm]={rows:ff.map(f=>({label:f.label,dir:f.dir,vals:[null,null,null,null,null,null,null,null]}))};}
