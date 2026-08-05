@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: v35 -->
+<!-- build: v36 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1765,22 +1765,31 @@ function clRec(cid,date,nm){
 }
 function clHasRec(r){ if(!r) return false; return ['prog','hw','wordR','wordS','att','memo','attend','hwck','wordck'].some(k=>r[k]); }
 function clSyncFromLesson(nm,row){
-  if(!row||!row.date) return;
+  if(!row||!row.date) return false;
   ensureClasses();
-  const cls=getStudentClass(nm); if(!cls) return;
+  const cls=getStudentClass(nm); if(!cls) return false;
   const rec=clRec(cls.id,row.date,nm);
+  const before=JSON.stringify(rec);
   const st=DB.students.find(s=>s.name===nm)||{};
   const high=(st.stype==='high')||/고/.test(st.grade||'');
+  const s3=v=>String(v==null?'':v).trim();
   const sn=String(row.no||'').replace(/[^0-9]/g,''); if(sn) rec.sess=sn;
-  rec.prog=row.content||'';
-  rec.hw=row.hwA||'';
-  rec.hwX=row.hw||'';
-  rec.hwpct=(row.rate!=null&&row.rate!=='')?String(row.rate).replace(/[^0-9]/g,''):'';
-  rec.tWord=(row.word==null?'':row.word);
-  rec.tBaek=(row.baek==null?'':row.baek);
-  if(high){ rec.mock=(row.dan==null?'':row.dan); } else { rec.tJong=(row.dan==null?'':row.dan); }
+  if(s3(row.content)!=='') rec.prog=row.content;
+  if(s3(row.hwA)!=='') rec.hw=row.hwA;
+  if(s3(row.hw)!=='') rec.hwX=row.hw;
+  if(row.rate!=null&&row.rate!=='') rec.hwpct=String(row.rate).replace(/[^0-9]/g,'');
+  if(row.word!=null) rec.tWord=row.word;
+  if(row.baek!=null) rec.tBaek=row.baek;
+  if(row.dan!=null){ if(high) rec.mock=row.dan; else rec.tJong=row.dan; }
   const revAtt={'집중O':'집중','집중X':'산만','졸음':'졸음','보통':'보통'};
-  if(row.att!=null) rec.att=revAtt[row.att]||'';
+  if(row.att) rec.att=revAtt[row.att]||'';
+  return JSON.stringify(rec)!==before;
+}
+function clBackfillFromLessons(){
+  if(!DB.lessons) return false;
+  let ch=false;
+  for(const nm in DB.lessons){ const rows=(DB.lessons[nm]&&DB.lessons[nm].rows)||[]; rows.forEach(r=>{ if(r&&r.date){ if(clSyncFromLesson(nm,r)) ch=true; } }); }
+  return ch;
 }
 function clPrevInfo(cid,nm,date){
   const rows=(DB.lessons&&DB.lessons[nm]&&DB.lessons[nm].rows)||[];
@@ -1808,7 +1817,7 @@ function clBackfillLessons(){
   if(cnt()>before && typeof save==='function') save();
 }
 function renderClassLive(){
-  ensureClasses(); clBackfillLessons();
+  ensureClasses(); const _rc=clBackfillFromLessons(); clBackfillLessons(); if(_rc&&typeof save==='function') save();
   if(!curClassDate) curClassDate=clToday();
   if(!curClassId || !DB.classes.find(c=>c.id===curClassId)) curClassId=(DB.classes[0]&&DB.classes[0].id)||null;
   document.getElementById('clTabs').innerHTML=DB.classes.map(c=>`<button class="sc-name-btn ${c.id===curClassId?'on':''}" onclick="clSelClass(${c.id})">${clEsc(c.name)} <span class="badge b-gray" style="margin-left:4px">${(c.members||[]).length}/${c.cap||0}</span></button>`).join('')||'<span style="color:#999;font-size:12px">반이 없습니다. 우측 ⚙️ 반 설정에서 추가하세요.</span>';
