@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: v36 -->
+<!-- build: v37 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1816,6 +1816,7 @@ function clBackfillLessons(){
   for(const cid in DB.classLog){ const bd=DB.classLog[cid]||{}; for(const date in bd){ const bn=bd[date]||{}; for(const nm in bn){ clSyncToLesson(parseInt(cid),date,nm); } } }
   if(cnt()>before && typeof save==='function') save();
 }
+function renderClassLiveInit(){ curClassDate=clToday(); renderClassLive(); }
 function renderClassLive(){
   ensureClasses(); const _rc=clBackfillFromLessons(); clBackfillLessons(); if(_rc&&typeof save==='function') save();
   if(!curClassDate) curClassDate=clToday();
@@ -2316,7 +2317,7 @@ function goPage(id){
   document.getElementById('page-'+id)?.classList.add('on');
   document.getElementById('pgT').textContent=PT[id]||id;
   document.querySelectorAll('.ni').forEach(n=>{if(n.dataset.p===id)n.classList.add('on');});
-  ({home:renderHome,students:renderStudents,scores:renderScores,attendance:renderAttend,lesson:renderLesson,classlive:renderClassLive,schedule:renderSchedule,unified:renderUnifiedInit,exam:renderExam,todo:renderTodo,consult:renderConsult,waitlist:renderWaitlist,revenue:renderRevenue,ai:renderAI,settings:renderSettings,admin:renderAdmin})[id]?.();
+  ({home:renderHome,students:renderStudents,scores:renderScores,attendance:renderAttend,lesson:renderLesson,classlive:renderClassLiveInit,schedule:renderSchedule,unified:renderUnifiedInit,exam:renderExam,todo:renderTodo,consult:renderConsult,waitlist:renderWaitlist,revenue:renderRevenue,ai:renderAI,settings:renderSettings,admin:renderAdmin})[id]?.();
 }
 function openMod(t,b,f){document.getElementById('mT').textContent=t;document.getElementById('mB').innerHTML=b;document.getElementById('mF').innerHTML=f;document.getElementById('mbg').classList.add('on');}
 function closeMod(){document.getElementById('mbg').classList.remove('on');}
