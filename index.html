@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: v37 -->
+<!-- build: v38 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1492,31 +1492,31 @@ const INIT = {
     '이도현':{rows:[
       {label:'단어(틀린수)',dir:'down',vals:[15,11,11,14,8,8,10,6]},
       {label:'백지(틀린수)',dir:'down',vals:[8,9,7,5,6,5,3,4]},
-      {label:'모의(총점)',dir:'up',vals:[125,124,130,143,144,163,172,173]},
+      {label:'모의(점수)',dir:'up',vals:[125,124,130,143,144,163,172,173]},
       {label:'미니(틀린수)',dir:'down',vals:[65,73,69,72,82,80,87,86]},
     ]},
     '한지민':{rows:[
       {label:'단어(틀린수)',dir:'down',vals:[12,14,15,14,9,8,9,9]},
       {label:'백지(틀린수)',dir:'down',vals:[8,10,6,7,5,6,3,1]},
-      {label:'모의(총점)',dir:'up',vals:[131,138,131,139,159,153,156,161]},
+      {label:'모의(점수)',dir:'up',vals:[131,138,131,139,159,153,156,161]},
       {label:'미니(틀린수)',dir:'down',vals:[67,65,74,74,81,81,87,91]},
     ]},
     '오세진':{rows:[
       {label:'단어(틀린수)',dir:'down',vals:[12,14,13,9,10,8,6,5]},
       {label:'백지(틀린수)',dir:'down',vals:[8,10,6,8,7,4,2,4]},
-      {label:'모의(총점)',dir:'up',vals:[125,139,135,144,159,157,164,176]},
+      {label:'모의(점수)',dir:'up',vals:[125,139,135,144,159,157,164,176]},
       {label:'미니(틀린수)',dir:'down',vals:[64,68,74,78,81,80,80,91]},
     ]},
     '김채원':{rows:[
       {label:'단어(틀린수)',dir:'down',vals:[13,12,13,13,13,12,9,7]},
       {label:'백지(틀린수)',dir:'down',vals:[8,7,6,5,6,5,3,1]},
-      {label:'모의(총점)',dir:'up',vals:[134,126,148,138,150,155,163,160]},
+      {label:'모의(점수)',dir:'up',vals:[134,126,148,138,150,155,163,160]},
       {label:'미니(틀린수)',dir:'down',vals:[63,68,71,77,77,81,87,90]},
     ]},
     '박준혁':{rows:[
       {label:'단어(틀린수)',dir:'down',vals:[16,12,10,10,12,12,6,7]},
       {label:'백지(틀린수)',dir:'down',vals:[8,9,7,8,4,3,2,3]},
-      {label:'모의(총점)',dir:'up',vals:[120,128,141,153,159,152,171,166]},
+      {label:'모의(점수)',dir:'up',vals:[120,128,141,153,159,152,171,166]},
       {label:'미니(틀린수)',dir:'down',vals:[70,70,72,75,78,81,82,88]},
     ]},
   },
@@ -1606,7 +1606,7 @@ const INIT = {
     highFields:[
       {label:'단어(틀린수)',dir:'down'},
       {label:'백지(틀린수)',dir:'down'},
-      {label:'모의(총점)',dir:'up'},
+      {label:'모의(점수)',dir:'up'},
       {label:'미니(틀린수)',dir:'down'},
     ],
   },
@@ -1658,6 +1658,7 @@ function save() {
 // (기존 데이터는 절대 지우지 않고, 빠진 학생만 새로 추가)
 function ensureStudentRecords(){
   try{ if(DB&&DB.cfg&&DB.cfg.midFields&&DB.cfg.midFields[2]&&DB.cfg.midFields[2].label==='단원(점수)'){ DB.cfg.midFields[2].label='종합Test'; DB.cfg.midFields[2].dir='down'; } }catch(e){}
+  try{ if(DB&&DB.cfg&&DB.cfg.highFields&&DB.cfg.highFields[2]&&DB.cfg.highFields[2].label==='모의(총점)'){ DB.cfg.highFields[2].label='모의(점수)'; } if(DB&&DB.scHigh){ Object.values(DB.scHigh).forEach(sd=>{(sd.rows||[]).forEach(r=>{ if(r&&r.label==='모의(총점)') r.label='모의(점수)'; });}); } }catch(e){}
   if(!DB || !Array.isArray(DB.students)) return false;
   DB.scMid = DB.scMid || {};
   DB.scHigh = DB.scHigh || {};
@@ -1878,7 +1879,7 @@ function clCard(cls,nm){
       <div style="flex:1"><input class="fi" style="text-align:center;padding:5px 3px" placeholder="백지" value="${clEsc(r.tBaek)}" oninput="clSet(${cid},'${d}','${en}','tBaek',this.value)"></div>
       <div style="flex:1"><input class="fi" style="text-align:center;padding:5px 3px" placeholder="종합" value="${clEsc(r.tJong)}" oninput="clSet(${cid},'${d}','${en}','tJong',this.value)"></div>
     </div><div style="font-size:9.5px;color:#aaa;margin-top:2px;display:flex;gap:6px"><span style="flex:1;text-align:center">단어</span><span style="flex:1;text-align:center">백지</span><span style="flex:1;text-align:center">종합</span></div></div>
-    ${high?`<div><div class="cl-lbl">모의고사 점수 <span style="color:#5A1E8A;font-weight:600">(고등)</span></div><input class="fi" type="number" placeholder="예: 130" value="${clEsc(r.mock)}" oninput="clSet(${cid},'${d}','${en}','mock',this.value)"></div>`:''}
+    ${high?`<div><div class="cl-lbl">모의고사 점수 <span style="color:#5A1E8A;font-weight:600">(고등 · 100점 만점)</span></div><input class="fi" type="number" min="0" max="100" placeholder="예: 85 (1~100)" value="${clEsc(r.mock)}" oninput="clSet(${cid},'${d}','${en}','mock',this.value)"></div>`:''}
     <div><div class="cl-lbl">추가 시험 <span style="color:#8A5B14;font-weight:600">(직접 입력 · 카톡 반영)</span></div>
       <div style="display:flex;gap:6px;margin-bottom:5px"><input class="fi" style="flex:2;padding:5px 8px" placeholder="시험명" value="${clEsc(r.exN1)}" oninput="clSet(${cid},'${d}','${en}','exN1',this.value)"><input class="fi" style="flex:1;text-align:center;padding:5px 4px" placeholder="틀린수" value="${clEsc(r.exW1)}" oninput="clSet(${cid},'${d}','${en}','exW1',this.value)"></div>
       <div style="display:flex;gap:6px"><input class="fi" style="flex:2;padding:5px 8px" placeholder="시험명" value="${clEsc(r.exN2)}" oninput="clSet(${cid},'${d}','${en}','exN2',this.value)"><input class="fi" style="flex:1;text-align:center;padding:5px 4px" placeholder="틀린수" value="${clEsc(r.exW2)}" oninput="clSet(${cid},'${d}','${en}','exW2',this.value)"></div>
@@ -1927,7 +1928,7 @@ function clSyncToLesson(cid,date,nm){
     if(isNaN(snNum)||snNum<1||snNum>20) return;
     const idx=snNum-1;
     const db=high?(DB.scHigh=DB.scHigh||{}):(DB.scMid=DB.scMid||{});
-    if(!db[nm]){ const ff=(typeof getCfgFields==='function')?getCfgFields(high?'high':'mid'):[{label:'단어(틀린수)',dir:'down'},{label:'백지(틀린수)',dir:'down'},{label:high?'모의(총점)':'종합Test',dir:high?'up':'down'},{label:high?'미니(틀린수)':'복습(점수)',dir:high?'down':'up'}]; db[nm]={rows:ff.map(f=>({label:f.label,dir:f.dir,vals:Array(8).fill(null)}))}; }
+    if(!db[nm]){ const ff=(typeof getCfgFields==='function')?getCfgFields(high?'high':'mid'):[{label:'단어(틀린수)',dir:'down'},{label:'백지(틀린수)',dir:'down'},{label:high?'모의(점수)':'종합Test',dir:high?'up':'down'},{label:high?'미니(틀린수)':'복습(점수)',dir:high?'down':'up'}]; db[nm]={rows:ff.map(f=>({label:f.label,dir:f.dir,vals:Array(8).fill(null)}))}; }
     const sc=db[nm].rows;
     const setv=(i,v)=>{ if(!sc[i]||v==null)return; while(sc[i].vals.length<idx+1) sc[i].vals.push(null); sc[i].vals[idx]=v; };
     setv(0,data.word); setv(1,data.baek); setv(2,data.dan);
@@ -2981,7 +2982,7 @@ function saveLR(nm){
   syncAttendance(nm,gv('ldt'));
   // 자동 연동: 성적카드 업데이트
   const st=DB.students.find(s=>s.name===nm);const tab=st?.stype||'mid';const db=tab==='mid'?DB.scMid:DB.scHigh;
-  if(!db[nm])db[nm]={rows:[{label:'단어(틀린수)',dir:'down',vals:Array(8).fill(null)},{label:'백지(틀린수)',dir:'down',vals:Array(8).fill(null)},{label:tab==='mid'?'단원(점수)':'모의(총점)',dir:'up',vals:Array(8).fill(null)},{label:tab==='mid'?'복습(점수)':'미니(틀린수)',dir:tab==='mid'?'up':'down',vals:Array(8).fill(null)}]};
+  if(!db[nm])db[nm]={rows:[{label:'단어(틀린수)',dir:'down',vals:Array(8).fill(null)},{label:'백지(틀린수)',dir:'down',vals:Array(8).fill(null)},{label:tab==='mid'?'단원(점수)':'모의(점수)',dir:'up',vals:Array(8).fill(null)},{label:tab==='mid'?'복습(점수)':'미니(틀린수)',dir:tab==='mid'?'up':'down',vals:Array(8).fill(null)}]};
   const ci=DB.lessons[nm].rows.length-1;if(ci<8){const sc=db[nm].rows;if(row.word!=null)sc[0].vals[ci]=row.word;if(row.baek!=null)sc[1].vals[ci]=row.baek;if(row.dan!=null)sc[2].vals[ci]=row.dan;if(row.rev!=null)sc[3].vals[ci]=row.rev;}
   save();closeMod();showLesson(nm);refreshDerived();
 }
