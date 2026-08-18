@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: v38 -->
+<!-- build: v39 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1918,6 +1918,7 @@ function clSyncToLesson(cid,date,nm){
   { const dn=high?num(r.mock):num(r.tJong); if(dn!=null) data.dan=dn; }
   { const at=attMap[r.att]||r.att; if(at) data.att=at; }
   if(r.attend==='지각'){ const lm2=num(r.lateMin); if(lm2!=null) data.late=lm2; }
+  { const ex=[]; const ef=(nm2,v)=>{const n=String(v==null?'':v).trim();const t2=String(nm2||'').trim();if(t2&&n!=='')ex.push(t2+' '+n+'개 틀림');}; ef(r.exN1,r.exW1); ef(r.exN2,r.exW2); data.exTests=ex.join(' · '); }
   let target;
   if(row){ Object.assign(row,data); target=row; }
   else { rows.push(data); target=data; }
@@ -2737,6 +2738,7 @@ function applyLesCfg(){
 }
 
 function clSortLessonRows(rows){ if(!Array.isArray(rows)) return; rows.sort((a,b)=>{const na=parseInt(String(a.no||'').replace(/[^0-9]/g,'')),nb=parseInt(String(b.no||'').replace(/[^0-9]/g,''));const va=isNaN(na)?9999:na,vb=isNaN(nb)?9999:nb;if(va!==vb)return va-vb;return String(a.date||'').localeCompare(String(b.date||''));}); }
+function exBadge(r){return r&&r.exTests?'<div style="margin-top:2px;font-size:11px;color:#5A1E8A">📊 추가시험: '+clEsc(r.exTests)+'</div>':'';}
 function showLesson(nm){
   document.getElementById('lesT').textContent=`${nm} — 수업 진도 & 피드백`;
   const ld=DB.lessons[nm];
@@ -2771,7 +2773,7 @@ function showLesson(nm){
   const body=ld.rows.map((r,ri)=>{
     let row=`<div style="font-weight:700;font-family:var(--M);justify-content:center;color:var(--ink);padding:9px 8px 9px 16px;">${r.no}</div>`;
     row+=`<div style="color:var(--ink3);font-size:11px">${r.date?.slice(5)||''}${r.tnote?' 🧑‍🏫':''}${r.late?' '+lateBadge(r.late):''}</div>`;
-    row+=`<div style="line-height:1.5;white-space:pre-wrap">${r.content||'—'}</div>`;
+    row+=`<div style="line-height:1.5;white-space:pre-wrap">${r.content||'—'}${exBadge(r)}</div>`;
     if(showHw)row+=`<div style="line-height:1.5;white-space:pre-wrap">${r.hwA||'—'}</div>`;
     if(showHw)row+=`<div style="line-height:1.5;white-space:pre-wrap;color:var(--ink3)">${r.hw||'—'}</div>`;
     row+=`<div style="justify-content:center">${r.rate||'—'}</div>`;
@@ -2797,7 +2799,7 @@ function openLessonDetail(nm,ri){
   const body=`<div style="font-size:13px;line-height:1.9">
     <div style="font-size:16px;font-weight:800;margin-bottom:2px">${r.no||''} <span style="font-size:12px;font-weight:600;color:var(--ink3)">${r.date?fmtKDate(r.date):''}</span></div>
     <div style="margin-bottom:12px">${attB(r.att)} <span class="badge b-dk" style="margin-left:4px">완료도 ${r.rate||'—'}</span>${lateBadge(r.late)}</div>
-    <div style="margin-bottom:8px"><div style="color:var(--ink3);font-weight:700;margin-bottom:4px">📌 수업 내용</div><div style="white-space:pre-wrap;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:12px">${r.content||'—'}</div></div>
+    <div style="margin-bottom:8px"><div style="color:var(--ink3);font-weight:700;margin-bottom:4px">📌 수업 내용</div><div style="white-space:pre-wrap;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:12px">${r.content||'—'}${exBadge(r)}</div></div>
     <div style="margin-bottom:8px"><div style="color:var(--ink3);font-weight:700;margin-bottom:4px">📚 오늘 숙제</div><div style="white-space:pre-wrap;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:12px">${r.hwA||'—'}</div></div>
     <div style="margin-bottom:8px"><div style="color:var(--ink3);font-weight:700;margin-bottom:4px">✏️ 오늘 숙제 미완료</div><div style="white-space:pre-wrap;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:12px">${r.hw||'—'}</div></div>
     <div style="display:grid;grid-template-columns:120px 1fr;gap:5px 10px;margin:10px 0;align-items:center">${scoreRows}</div>
@@ -3188,7 +3190,7 @@ function _buildUniReportHtml(nm){
       out+=`<tr style="background:${bg}">
         <td style="border:1px solid #d0d4dc;padding:8px 4px;text-align:center;font-weight:700;font-size:11px;vertical-align:top">${_esc(r.no||(ri+1))}</td>
         <td style="border:1px solid #d0d4dc;padding:8px 4px;text-align:center;color:#555;font-size:10px;vertical-align:top">${_esc((r.date||'').slice(5))}${r.late?`<br><span style="color:#8A5B14;font-size:9px;font-weight:700;white-space:nowrap">🕒 ${String(r.late)==='30'?'30분+':_esc(String(r.late))+'분'} 지각</span>`:''}</td>
-        <td style="border:1px solid #d0d4dc;padding:8px 6px;font-size:11px;line-height:1.55;color:#111;white-space:pre-wrap;word-break:break-word;vertical-align:top">${_esc(r.content||'—')}</td>
+        <td style="border:1px solid #d0d4dc;padding:8px 6px;font-size:11px;line-height:1.55;color:#111;white-space:pre-wrap;word-break:break-word;vertical-align:top">${_esc(r.content||'—')}${exBadge(r)}</td>
         ${showHw?`<td style="border:1px solid #d0d4dc;padding:8px 6px;font-size:11px;line-height:1.55;color:#333;white-space:pre-wrap;word-break:break-word;vertical-align:top">${_esc(r.hw||'—')}</td>`:''}
         <td style="border:1px solid #d0d4dc;padding:8px 4px;text-align:center;font-size:11px;font-weight:700;vertical-align:top">${_esc(r.rate||'—')}</td>
         ${scoreCols.map((f,fi)=>`<td style="border:1px solid #d0d4dc;padding:8px 2px;text-align:center;font-size:11px;vertical-align:top">${_scCell(r[scoreKeys[fi]],f.dir)}</td>`).join('')}
@@ -3515,7 +3517,7 @@ function renderUnified(nm){
     html+=ld.rows.map((r,ri)=>{
       let row=`<div style="font-weight:700;font-family:var(--M);justify-content:center;color:var(--ink);padding:9px 8px 9px 16px;">${r.no}</div>`;
       row+=`<div style="color:var(--ink3);font-size:11px">${r.date?.slice(5)||''}${r.late?' '+lateBadge(r.late):''}</div>`;
-      row+=`<div style="line-height:1.5;white-space:pre-wrap;font-size:12px">${r.content||'—'}</div>`;
+      row+=`<div style="line-height:1.5;white-space:pre-wrap;font-size:12px">${r.content||'—'}${exBadge(r)}</div>`;
       if(showHw)row+=`<div style="line-height:1.5;white-space:pre-wrap;font-size:12px">${r.hwA||'—'}</div>`;
       if(showHw)row+=`<div style="line-height:1.5;white-space:pre-wrap;font-size:12px;color:var(--ink3)">${r.hw||'—'}</div>`;
       row+=`<div style="justify-content:center">${r.rate||'—'}</div>`;
