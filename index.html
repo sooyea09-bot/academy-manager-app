@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: v40 -->
+<!-- build: v41 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -2156,7 +2156,7 @@ function clRemoveFromClass(cid,name){ if(!confirm(name+' 학생을 이 반에서
 
 /* ═══════════════ 전체 주간 시간표 ═══════════════ */
 const SCHED_DAYS=['월','화','수','목','금','토','일'];
-const SCHED_START=600, SCHED_END=1320, SCHED_ROWH=48;
+const SCHED_START=600, SCHED_END=1440, SCHED_ROWH=48;
 const SCHED_PAL=['#3D6FFF','#E0663E','#1A9A58','#8A4FD6','#C48A22','#2AA9B8','#D64F8F','#5A6BE0','#3FA34D','#B8862A'];
 function ensureSchedule(){
   if(Array.isArray(DB.schedule)) return;
@@ -2189,11 +2189,11 @@ function renderSchedule(){
   ensureSchedule();
   const H=(SCHED_END-SCHED_START)/60*SCHED_ROWH;
   let axis='';
-  for(let h=10;h<=22;h++){ axis+=`<div class="sched-time-lbl" style="top:${(h-10)*SCHED_ROWH}px">${h}:00</div>`; }
+  for(let h=10;h<=24;h++){ axis+=`<div class="sched-time-lbl" style="top:${(h-10)*SCHED_ROWH}px">${h}:00</div>`; }
   let cols='';
   for(let d=0;d<7;d++){
     let zones='';
-    for(let i=0;i<12;i++){ zones+=`<div class="sched-zone" style="height:${SCHED_ROWH}px" onclick="schedAddAt(${d},${SCHED_START+i*60})"></div>`; }
+    for(let i=0;i<14;i++){ zones+=`<div class="sched-zone" style="height:${SCHED_ROWH}px" onclick="schedAddAt(${d},${SCHED_START+i*60})"></div>`; }
     const blocks=DB.schedule.filter(b=>b.day===d).map(b=>{
       const sm=schedMin(b.start), top=(sm-SCHED_START)/60*SCHED_ROWH, hh=(b.dur||120)/60*SCHED_ROWH, col=schedColor(b.title||'');
       return `<div class="sched-block" style="top:${top}px;height:${hh-3}px;background:${col}" onclick="event.stopPropagation();openSchedEdit(${b.id})"><div class="sched-t">${clEsc(b.title)}</div><div class="sched-time">${b.start}~${schedHHMM(sm+(b.dur||120))}</div></div>`;
