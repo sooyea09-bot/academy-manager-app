@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: v41 -->
+<!-- build: v42 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -2187,7 +2187,7 @@ function schedHHMM(m){m=Math.max(0,Math.round(m));const h=Math.floor(m/60),mm=m%
 function schedColor(title){let h=0;for(let i=0;i<title.length;i++)h=(h*31+title.charCodeAt(i))>>>0;return SCHED_PAL[h%SCHED_PAL.length];}
 function renderSchedule(){
   ensureSchedule();
-  const H=(SCHED_END-SCHED_START)/60*SCHED_ROWH;
+  const H=(SCHED_END-SCHED_START)/60*SCHED_ROWH+28;
   let axis='';
   for(let h=10;h<=24;h++){ axis+=`<div class="sched-time-lbl" style="top:${(h-10)*SCHED_ROWH}px">${h}:00</div>`; }
   let cols='';
